@@ -4,37 +4,41 @@ class ProfileStats extends StatelessWidget {
   final int postCount;
   final int followerCount;
   final int followingCount;
-  final void Function()? onTap;
+  final VoidCallback? onPostsTap;
+  final VoidCallback? onFollowersTap;
+  final VoidCallback? onFollowingTap;
 
   const ProfileStats({
     super.key,
     required this.postCount,
     required this.followerCount,
     required this.followingCount,
-    required this.onTap,
+    this.onPostsTap,
+    this.onFollowersTap,
+    this.onFollowingTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    // text style for count
+    // Стиль текста для чисел
     var textStyleForCount = TextStyle(
       fontSize: 17,
       color: Theme.of(context).colorScheme.inversePrimary,
     );
 
-    // text style for text
+    // Стиль текста для подписей
     var textStyleForText = TextStyle(
       fontSize: 13,
       color: Theme.of(context).colorScheme.primary,
     );
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // posts
-          SizedBox(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Раздел "записи"
+        GestureDetector(
+          onTap: onPostsTap,
+          child: SizedBox(
             width: 100,
             child: Column(
               children: [
@@ -43,9 +47,11 @@ class ProfileStats extends StatelessWidget {
               ],
             ),
           ),
-
-          // followers
-          SizedBox(
+        ),
+        // Раздел "подписчики"
+        GestureDetector(
+          onTap: onFollowersTap,
+          child: SizedBox(
             width: 100,
             child: Column(
               children: [
@@ -54,22 +60,21 @@ class ProfileStats extends StatelessWidget {
               ],
             ),
           ),
-
-          // following
-          SizedBox(
+        ),
+        // Раздел "подписки"
+        GestureDetector(
+          onTap: onFollowingTap,
+          child: SizedBox(
             width: 100,
             child: Column(
               children: [
                 Text(followingCount.toString(), style: textStyleForCount),
-                Text(
-                  'Подписки',
-                  style: textStyleForText,
-                ),
+                Text('Подписки', style: textStyleForText),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

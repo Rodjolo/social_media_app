@@ -6,19 +6,23 @@ import 'package:socail_media_app/features/profile/presentation/cubit/profile_cub
 class FollowerPage extends StatelessWidget {
   final List<String> followers;
   final List<String> following;
+  final String initialTab;
+
   const FollowerPage({
     super.key,
     required this.followers,
     required this.following,
+    this.initialTab = 'followers',
   });
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
+      initialIndex:
+          initialTab == 'following' ? 1 : 0,
       child: Scaffold(
         appBar: AppBar(
-
           // Tab Bar
           bottom: TabBar(
             dividerColor: Colors.transparent,
@@ -67,7 +71,8 @@ class FollowerPage extends StatelessWidget {
 
                   // not found
                   else {
-                    return const ListTile(title: Text('Пользвоатель не найден..'));
+                    return const ListTile(
+                        title: Text('Пользвоатель не найден..'));
                   }
                 },
               );

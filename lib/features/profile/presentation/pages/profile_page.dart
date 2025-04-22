@@ -161,11 +161,28 @@ class _ProfilePageState extends State<ProfilePage> {
                   postCount: postCount,
                   followerCount: user.followers.length,
                   followingCount: user.following.length,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => FollowerPage(
+                  onPostsTap: null, 
+                  onFollowersTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FollowerPage(
                         followers: user.followers,
                         following: user.following,
-                      ))),
+                        initialTab:
+                            'followers', 
+                      ),
+                    ),
+                  ),
+                  onFollowingTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FollowerPage(
+                        followers: user.followers,
+                        following: user.following,
+                        initialTab: 'following', 
+                      ),
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 25),
