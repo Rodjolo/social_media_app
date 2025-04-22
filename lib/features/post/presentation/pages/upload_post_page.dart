@@ -9,6 +9,7 @@ import 'package:socail_media_app/features/auth/presentation/components/my_text_f
 import 'package:socail_media_app/features/post/domain/enteties/post.dart';
 import 'package:socail_media_app/features/post/presentation/cubits/post_cubit.dart';
 import 'package:socail_media_app/features/post/presentation/cubits/post_states.dart';
+import 'package:socail_media_app/responsive/constrained_scaffold.dart';
 import '../../../auth/presentation/cubits/auth_cubit.dart';
 
 class UploadPostPage extends StatefulWidget {
@@ -104,7 +105,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
         print(state);
         // loading or uploading ..
         if (state is PostLoading || state is PostUploading) {
-          return const Scaffold(
+          return const ConstrainedScaffold(
             body: Center(
               child: CircularProgressIndicator(),
             ),
@@ -127,7 +128,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
   }
 
   Widget buildUploadPage() {
-    return Scaffold(
+    return ConstrainedScaffold(
       appBar: AppBar(
         title: const Text('Создать пост'),
         foregroundColor: Theme.of(context).colorScheme.primary,

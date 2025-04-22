@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:socail_media_app/features/profile/presentation/components/user_tile.dart';
 import 'package:socail_media_app/features/search/presentation/cubits/search_cubit.dart';
 import 'package:socail_media_app/features/search/presentation/cubits/search_states.dart';
+import 'package:socail_media_app/responsive/constrained_scaffold.dart';
 
 class SearchPage extends StatefulWidget {
   final bool forChatCreation;
@@ -37,7 +38,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     // SCAFFOLD
-    return Scaffold(
+    return ConstrainedScaffold(
       // App Bar
       appBar: AppBar(
         // Search Text Field

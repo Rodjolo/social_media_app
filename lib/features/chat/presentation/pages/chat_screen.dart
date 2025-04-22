@@ -4,6 +4,7 @@ import 'package:socail_media_app/features/auth/presentation/cubits/auth_cubit.da
 import 'package:socail_media_app/features/chat/domain/entities/message.dart';
 import 'package:socail_media_app/features/chat/presentation/cubits/chat_cubit.dart';
 import 'package:socail_media_app/features/profile/domain/entities/profile_user.dart';
+import 'package:socail_media_app/responsive/constrained_scaffold.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -73,7 +74,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ConstrainedScaffold(
       appBar: AppBar(
         title: Text(widget.otherUser.name),
       ),

@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:socail_media_app/features/auth/presentation/components/my_text_field.dart';
 import 'package:socail_media_app/features/profile/presentation/cubit/profile_cubit.dart';
 import 'package:socail_media_app/features/profile/presentation/cubit/profile_states.dart';
+import 'package:socail_media_app/responsive/constrained_scaffold.dart';
 
 import '../../domain/entities/profile_user.dart';
 
@@ -90,7 +91,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       builder: (context, state) {
         // profile loading..
         if (state is ProfileLoading) {
-          return const Scaffold(
+          return const ConstrainedScaffold(
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

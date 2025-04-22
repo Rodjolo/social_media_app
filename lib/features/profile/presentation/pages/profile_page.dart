@@ -9,6 +9,7 @@ import 'package:socail_media_app/features/profile/presentation/components/follow
 import 'package:socail_media_app/features/profile/presentation/components/profile_stats.dart';
 import 'package:socail_media_app/features/profile/presentation/cubit/profile_cubit.dart';
 import 'package:socail_media_app/features/profile/presentation/pages/follower_page.dart';
+import 'package:socail_media_app/responsive/constrained_scaffold.dart';
 import '../../../auth/domain/entities/app_user.dart';
 import '../../../auth/presentation/cubits/auth_cubit.dart';
 import '../cubit/profile_states.dart';
@@ -90,7 +91,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (state is ProfileLoaded) {
           final user = state.profileUser;
 
-          return Scaffold(
+          return ConstrainedScaffold(
             appBar: AppBar(
               title: Text(user.name),
               foregroundColor: Theme.of(context).colorScheme.primary,
@@ -278,7 +279,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
         //loading..
         else if (state is ProfileLoading) {
-          return const Scaffold(
+          return const ConstrainedScaffold(
             body: Center(
               child: CircularProgressIndicator(),
             ),

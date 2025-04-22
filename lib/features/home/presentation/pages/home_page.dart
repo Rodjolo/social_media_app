@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:socail_media_app/features/home/presentation/components/my_drawer.dart';
 import 'package:socail_media_app/features/post/presentation/components/post_tile.dart';
 import 'package:socail_media_app/features/post/presentation/cubits/post_cubit.dart';
+import 'package:socail_media_app/responsive/constrained_scaffold.dart';
 
 import '../../../post/presentation/cubits/post_states.dart';
 import '../../../post/presentation/pages/upload_post_page.dart';
@@ -37,7 +38,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ConstrainedScaffold(
       appBar: AppBar(
         title: const Text('Главная'),
         foregroundColor: Theme.of(context).colorScheme.primary,

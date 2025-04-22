@@ -4,7 +4,7 @@ import 'package:socail_media_app/features/chat/presentation/cubits/chat_cubit.da
 import 'package:socail_media_app/features/chat/presentation/pages/chat_list_screen.dart';
 import 'package:socail_media_app/features/home/presentation/components/my_drawer_tile.dart';
 import 'package:socail_media_app/features/profile/presentation/cubit/profile_cubit.dart';
-import 'package:socail_media_app/features/search/presentation/cubits/pages/search_page.dart';
+import 'package:socail_media_app/features/search/presentation/pages/search_page.dart';
 import 'package:socail_media_app/features/settings/pages/settings_page.dart';
 
 import '../../../auth/presentation/cubits/auth_cubit.dart';
