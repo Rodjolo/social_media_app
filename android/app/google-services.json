@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "209148374373",
+    "project_id": "socailmediaapp-f2758",
+    "storage_bucket": "socailmediaapp-f2758.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:209148374373:android:97489b360b52163297458c",
+        "android_client_info": {
+          "package_name": "com.example.socail_media_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDASVSBemeARhEJzLJUd3fq3fVLpnuTULg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
