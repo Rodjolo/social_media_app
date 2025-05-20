@@ -1,0 +1,2 @@
+C:/Flutter Projects/SocialMediaApp/social_media_app/android/app/.cxx/Debug/4q13474b/x86_64/CMakeFiles/edit_cache.dir
+C:/Flutter Projects/SocialMediaApp/social_media_app/android/app/.cxx/Debug/4q13474b/x86_64/CMakeFiles/rebuild_cache.dir
