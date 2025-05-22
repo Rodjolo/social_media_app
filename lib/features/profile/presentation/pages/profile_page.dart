@@ -82,171 +82,149 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    // is own post
     bool isOwnPost = widget.uid == currentUser!.uid;
 
     return BlocBuilder<ProfileCubit, ProfileState>(
-      builder: (context, state) {
-        //loaded
-        if (state is ProfileLoaded) {
-          final user = state.profileUser;
+      builder: (context, profileState) {
+        if (profileState is ProfileLoaded) {
+          final user = profileState.profileUser;
 
           return ConstrainedScaffold(
             appBar: AppBar(
               title: Text(user.name),
               foregroundColor: Theme.of(context).colorScheme.primary,
               actions: [
-                // edit profile button
-
                 if (isOwnPost)
                   IconButton(
                     onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EditProfilePage(
-                            user: user,
-                          ),
-                        )),
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditProfilePage(user: user),
+                      ),
+                    ),
                     icon: const Icon(Icons.settings),
-                  )
+                  ),
               ],
             ),
+            body: BlocBuilder<PostCubit, PostState>(
+              builder: (context, postState) {
+                final userPosts = postState is PostLoaded
+                    ? postState.posts
+                        .where((post) => post.userId == widget.uid)
+                        .toList()
+                    : [];
 
-            // BODY
-            body: ListView(
-              children: [
-                // email
-                Center(
-                  child: Text(
-                    user.email,
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.primary),
-                  ),
-                ),
-                const SizedBox(height: 25),
-
-                // profile pic
-                CachedNetworkImage(
-                  imageUrl: user.profileImageUrl.isNotEmpty
-                      ? "${user.profileImageUrl}?t=${DateTime.now().millisecondsSinceEpoch}"
-                      : 'https://via.placeholder.com/150',
-
-                  // loading..
-                  placeholder: (context, url) =>
-                      const CircularProgressIndicator(),
-
-                  // error
-                  errorWidget: (context, url, error) => Icon(
-                    Icons.person,
-                    size: 72,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-
-                  // loaded
-                  imageBuilder: (context, imageProvider) => Container(
-                    height: 120,
-                    width: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: imageProvider,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 25),
-
-                // profile stats
-                ProfileStats(
-                  postCount: postCount,
-                  followerCount: user.followers.length,
-                  followingCount: user.following.length,
-                  onPostsTap: null, 
-                  onFollowersTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FollowerPage(
-                        followers: user.followers,
-                        following: user.following,
-                        initialTab:
-                            'followers', 
-                      ),
-                    ),
-                  ),
-                  onFollowingTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FollowerPage(
-                        followers: user.followers,
-                        following: user.following,
-                        initialTab: 'following', 
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 25),
-
-                // follow button
-                if (!isOwnPost)
-                  FollowButton(
-                    onPressed: followButtonPressed,
-                    isFollowing: user.followers.contains(currentUser!.uid),
-                  ),
-
-                const SizedBox(height: 25),
-
-                // bio box
-                Padding(
-                  padding: const EdgeInsets.only(left: 25.0),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Описание',
+                return ListView(
+                  children: [
+                    // email
+                    Center(
+                      child: Text(
+                        user.email,
                         style: TextStyle(
                             color: Theme.of(context).colorScheme.primary),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                    const SizedBox(height: 25),
 
-                const SizedBox(height: 10),
-
-                BioBox(text: user.bio),
-
-                // posts
-                Padding(
-                  padding: const EdgeInsets.only(left: 25.0, top: 25),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Лента',
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary),
+                    // profile image
+                    CachedNetworkImage(
+                      imageUrl: user.profileImageUrl.isNotEmpty
+                          ? "${user.profileImageUrl}?t=${DateTime.now().millisecondsSinceEpoch}"
+                          : 'https://via.placeholder.com/150',
+                      placeholder: (context, url) =>
+                          const CircularProgressIndicator(),
+                      errorWidget: (context, url, error) => Icon(
+                        Icons.person,
+                        size: 72,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
-                    ],
-                  ),
-                ),
+                      imageBuilder: (context, imageProvider) => Container(
+                        height: 120,
+                        width: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            image: imageProvider,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
 
-                const SizedBox(
-                  height: 10,
-                ),
+                    // profile stats
+                    ProfileStats(
+                      postCount: userPosts.length,
+                      followerCount: user.followers.length,
+                      followingCount: user.following.length,
+                      onPostsTap: null,
+                      onFollowersTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FollowerPage(
+                            followers: user.followers,
+                            following: user.following,
+                            initialTab: 'followers',
+                          ),
+                        ),
+                      ),
+                      onFollowingTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FollowerPage(
+                            followers: user.followers,
+                            following: user.following,
+                            initialTab: 'following',
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
 
-                // list of posts from this user
-                BlocBuilder<PostCubit, PostState>(
-                  builder: (context, state) {
-                    // post loaded..
-                    if (state is PostLoaded) {
-                      // filter posts by user id
-                      final userPosts = state.posts
-                          .where((post) => post.userId == widget.uid)
-                          .toList();
+                    if (!isOwnPost)
+                      FollowButton(
+                        onPressed: followButtonPressed,
+                        isFollowing: user.followers.contains(currentUser!.uid),
+                      ),
+                    const SizedBox(height: 25),
 
-                      postCount = userPosts.length;
+                    Padding(
+                      padding: const EdgeInsets.only(left: 25.0),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Описание',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    BioBox(text: user.bio),
 
-                      return ListView.builder(
-                        itemCount: postCount,
+                    Padding(
+                      padding: const EdgeInsets.only(left: 25.0, top: 25),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Лента',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Post list
+                    if (postState is PostLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (userPosts.isEmpty)
+                      const Center(child: Text('Нет постов..'))
+                    else
+                      ListView.builder(
+                        itemCount: userPosts.length,
                         physics: const NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
                         itemBuilder: (context, index) {
@@ -257,38 +235,21 @@ class _ProfilePageState extends State<ProfilePage> {
                                 context.read<PostCubit>().deletePost(post.id),
                           );
                         },
-                      );
-                    }
-
-                    // post loading..
-                    else if (state is PostLoading) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    } else {
-                      return const Center(
-                        child: Text('Нет постов..'),
-                      );
-                    }
-                  },
-                )
-              ],
+                      ),
+                  ],
+                );
+              },
             ),
           );
         }
 
-        //loading..
-        else if (state is ProfileLoading) {
+        if (profileState is ProfileLoading) {
           return const ConstrainedScaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        } else {
-          return const Center(
-            child: Text('Профиль не найден'),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
+
+        return const Center(child: Text('Профиль не найден'));
       },
     );
   }
