@@ -38,8 +38,7 @@ class SupabaseStorageRepo implements StorageRepo {
       }
 
       // Получаем публичную ссылку
-      final publicUrlResponse =
-          storage.from(folder).getPublicUrl(fileName);
+      final publicUrlResponse = storage.from(folder).getPublicUrl(fileName);
       return publicUrlResponse;
     } catch (e) {
       print('Ошибка загрузки файла: $e');
@@ -48,19 +47,14 @@ class SupabaseStorageRepo implements StorageRepo {
   }
 
   Future<String?> _uploadFileBytes(
-    Uint8List fileBytes,
-    String fileName,
-    String folder,
-  ) async {
+      Uint8List fileBytes, String fileName, String folder) async {
     try {
-      // Загружаем байты в Supabase Storage
-      final uploadResponse = await storage
-          .from(folder)
-          .uploadBinary(
-            fileName,
+      final uploadResponse = await storage.from(folder).uploadBinary(
+            fileName, // Используется имя с расширением, например, "1698765432101234.jpg"
             fileBytes,
             fileOptions: FileOptions(
-              contentType: _getMimeType(fileName),
+              contentType:
+                  _getMimeType(fileName), // MIME-тип определяется по расширению
               upsert: true,
             ),
           );
@@ -69,10 +63,9 @@ class SupabaseStorageRepo implements StorageRepo {
         throw Exception('Ошибка загрузки файла');
       }
 
-      // Получаем публичную ссылку
-      final publicUrl =
-          storage.from(folder).getPublicUrl('$folder/$fileName');
-
+      final publicUrl = storage
+          .from(folder)
+          .getPublicUrl(fileName); // Убрано лишнее "$folder/"
       return publicUrl;
     } catch (e) {
       print('Ошибка загрузки файла: $e');

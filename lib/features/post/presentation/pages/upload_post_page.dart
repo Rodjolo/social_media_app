@@ -83,12 +83,21 @@ class _UploadPostPageState extends State<UploadPostPage> {
 
     // web upload
     if (kIsWeb) {
-      postCubit.createPost(newPost, imageBytes: imagePickedFile?.bytes);
+      postCubit.createPost(
+        newPost,
+        imageBytes: imagePickedFile?.bytes,
+        fileName:
+            imagePickedFile?.name ?? '${newPost.id}.jpg', // Передаем имя файла
+      );
     }
-
     // mobile upload
     else {
-      postCubit.createPost(newPost, imagePath: imagePickedFile?.path);
+      postCubit.createPost(
+        newPost,
+        imagePath: imagePickedFile?.path,
+        fileName:
+            imagePickedFile?.name ?? '${newPost.id}.jpg', // Передаем имя файла
+      );
     }
   }
 
@@ -146,27 +155,29 @@ class _UploadPostPageState extends State<UploadPostPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // image preview for web
-          if (kIsWeb && webImage != null) Image.memory(webImage!),
-
-          // image preview for mobile
-          if (!kIsWeb && imagePickedFile != null)
-            Image.file(File(imagePickedFile!.path!)),
-
-          // pick image button
-          MaterialButton(
-            onPressed: pickImage,
-            color: Colors.blue,
-            child: const Text('Выбрать Фото'),
-          ),
-
-          MyTextField(
-              controller: textController,
-              hintText: 'Текст',
-              obscureText: false),
-        ],
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // image preview for web
+            if (kIsWeb && webImage != null) Image.memory(webImage!),
+        
+            // image preview for mobile
+            if (!kIsWeb && imagePickedFile != null)
+              Image.file(File(imagePickedFile!.path!)),
+        
+            // pick image button
+            MaterialButton(
+              onPressed: pickImage,
+              color: Colors.blue,
+              child: const Text('Выбрать Фото'),
+            ),
+        
+            MyTextField(
+                controller: textController,
+                hintText: 'Текст',
+                obscureText: false),
+          ],
+        ),
       ),
     );
   }

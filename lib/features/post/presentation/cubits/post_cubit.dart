@@ -18,18 +18,18 @@ class PostCubit extends Cubit<PostState> {
 
   // create a new post
   Future<void> createPost(Post post,
-      {String? imagePath, Uint8List? imageBytes}) async {
+      {String? imagePath, Uint8List? imageBytes, String? fileName}) async {
     String imageUrl = '';
 
     try {
-      if (imagePath != null) {
+      if (imagePath != null && fileName != null) {
         emit(PostUploading());
         imageUrl =
-            await storageRepo.uploadPostImageMobile(imagePath, post.id) ?? '';
-      } else if (imageBytes != null) {
+            await storageRepo.uploadPostImageMobile(imagePath, fileName) ?? '';
+      } else if (imageBytes != null && fileName != null) {
         emit(PostUploading());
         imageUrl =
-            await storageRepo.uploadPostImageWeb(imageBytes, post.id) ?? '';
+            await storageRepo.uploadPostImageWeb(imageBytes, fileName) ?? '';
       }
 
       final newPost = post.copyWith(imageUrl: imageUrl);
@@ -62,36 +62,32 @@ class PostCubit extends Cubit<PostState> {
 
   // toggle like on a post
   Future<void> toggleLikePost(String postId, String userId) async {
-    try{
+    try {
       await postRepo.toggleLikePost(postId, userId);
-    }
-    catch(e){
+    } catch (e) {
       emit(PostError(message: 'Ошибка в учтении лайка: $e'));
     }
   }
 
   // add a comment to a post
   Future<void> addComment(String postId, Comment comment) async {
-    try{
+    try {
       await postRepo.addComment(postId, comment);
 
       await fetchAllPosts();
-    }
-    catch(e){
+    } catch (e) {
       emit(PostError(message: 'Ошибка добавления комментария: $e'));
     }
   }
 
   // delete a comment from a post
   Future<void> deleteComment(String postId, String commentId) async {
-    try{
+    try {
       await postRepo.deleteComment(postId, commentId);
 
       await fetchAllPosts();
-    }
-    catch(e){
+    } catch (e) {
       emit(PostError(message: 'Ошибка удаления комментария: $e'));
     }
   }
-
 }
