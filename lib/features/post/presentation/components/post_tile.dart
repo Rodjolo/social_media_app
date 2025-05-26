@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart'; 
 import 'package:socail_media_app/features/auth/domain/entities/app_user.dart';
 import 'package:socail_media_app/features/auth/presentation/components/my_text_field.dart';
 import 'package:socail_media_app/features/auth/presentation/cubits/auth_cubit.dart';
@@ -104,7 +105,7 @@ class _PostTileState extends State<PostTile> {
         actions: [
           // cancel button
           TextButton(
-            onPressed: () => Navigator.of(context).pop,
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Отменить'),
           ),
 
@@ -305,8 +306,14 @@ class _PostTileState extends State<PostTile> {
                 ),
 
                 const Spacer(),
-                // timestamp
-                Text(widget.post.timestamp.toString())
+                // timestamp (форматированное время)
+                Text(
+                  DateFormat('dd.MM.yyyy HH:mm').format(widget.post.timestamp),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
           ),
