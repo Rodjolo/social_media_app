@@ -56,7 +56,7 @@ lib/
 
 ## 🖼️ Скриншоты
 
-![Главный экран](assets/main_screen.jpg)
+![Главный экран](assets/home_screen.jpg)
 
 ![Экран чата](assets/chat_screen.jpg)
 
