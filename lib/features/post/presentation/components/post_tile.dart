@@ -235,12 +235,10 @@ class _PostTileState extends State<PostTile> {
           // image
           CachedNetworkImage(
             imageUrl: widget.post.imageUrl,
-            height: 430,
             width: double.infinity,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => const SizedBox(
-              height: 430,
-            ),
+            fit: BoxFit.contain,
+            placeholder: (context, url) =>
+                const Center(child: CircularProgressIndicator()),
             errorWidget: (context, url, error) => const Icon(Icons.error),
           ),
 
