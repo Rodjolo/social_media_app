@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:socail_media_app/features/auth/data/pocketbase_auth_repo.dart';
 import 'package:socail_media_app/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:socail_media_app/features/auth/presentation/cubits/auth_states.dart';
-import 'package:socail_media_app/features/movies/data/firebase_movie_repo.dart';
+import 'package:socail_media_app/features/movies/data/pocketbase_movie_repo.dart';
 import 'package:socail_media_app/features/movies/presentation/cubits/movie_cubit.dart';
 import 'package:socail_media_app/features/post/data/pocketbase_post_repo.dart';
 import 'package:socail_media_app/features/post/presentation/cubits/post_cubit.dart';
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
   final pocketBaseSearchRepo = PocketBaseSearchRepo();
 
   // movie repo
-  final firebaseMovieRepo = FirebaseMovieRepo();
+  final pocketBaseMovieRepo = PocketBaseMovieRepo();
 
   MyApp({super.key});
 
@@ -69,7 +69,7 @@ class MyApp extends StatelessWidget {
         ),
 
         BlocProvider<MovieCubit>(
-          create: (context) => MovieCubit(movieRepo: firebaseMovieRepo),
+          create: (context) => MovieCubit(movieRepo: pocketBaseMovieRepo),
         ),
 
         //theme cubit

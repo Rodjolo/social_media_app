@@ -90,6 +90,14 @@ Fields:
 - `year` (`number`)
 - `popularity` (`number`)
 
+Recommended API rules for local development:
+
+- `list`: `@request.auth.id != ""`
+- `view`: `@request.auth.id != ""`
+- `create`: `@request.auth.id != ""`
+- `update`: `@request.auth.id != ""`
+- `delete`: `@request.auth.id != ""`
+
 ### `ratings`
 
 Fields:
@@ -99,6 +107,14 @@ Fields:
 - `rating` (`number`)
 - `liked` (`bool`)
 - `timestamp` (`date`)
+
+Recommended API rules for local development:
+
+- `list`: `@request.auth.id != "" && uid = @request.auth.id`
+- `view`: `@request.auth.id != "" && uid = @request.auth.id`
+- `create`: `@request.auth.id != "" && @request.body.uid = @request.auth.id`
+- `update`: `@request.auth.id != "" && uid = @request.auth.id`
+- `delete`: `@request.auth.id != "" && uid = @request.auth.id`
 
 ### `recommendations`
 
@@ -115,6 +131,14 @@ Fields:
 - `overview` (`text`)
 - `year` (`number`)
 - `popularity` (`number`)
+
+Recommended API rules for local development:
+
+- `list`: `@request.auth.id != "" && uid = @request.auth.id`
+- `view`: `@request.auth.id != "" && uid = @request.auth.id`
+- `create`: `@request.auth.id != ""`
+- `update`: `@request.auth.id != ""`
+- `delete`: `@request.auth.id != ""`
 
 ## Migration order
 

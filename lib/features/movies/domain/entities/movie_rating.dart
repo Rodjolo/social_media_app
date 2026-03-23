@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class MovieRating {
   final String id;
   final String uid;
@@ -39,18 +37,21 @@ class MovieRating {
       'movieId': movieId,
       'rating': rating,
       'liked': liked,
-      'timestamp': Timestamp.fromDate(timestamp),
+      'timestamp': timestamp.toIso8601String(),
     };
   }
 
   factory MovieRating.fromJson(Map<String, dynamic> json) {
+    final rawTimestamp = json['timestamp'];
+
     return MovieRating(
       id: json['id']?.toString() ?? '',
       uid: json['uid']?.toString() ?? '',
       movieId: json['movieId']?.toString() ?? '',
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       liked: json['liked'] == true,
-      timestamp: (json['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      timestamp:
+          DateTime.tryParse(rawTimestamp?.toString() ?? '') ?? DateTime.now(),
     );
   }
 }

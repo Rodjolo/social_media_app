@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:socail_media_app/features/movies/domain/entities/movie.dart';
 
 class RecommendationItem {
@@ -26,10 +25,8 @@ class RecommendationItem {
       movieId: json['movieId']?.toString() ?? movie.id,
       score: (json['score'] as num?)?.toDouble() ?? 0,
       reason: json['reason']?.toString() ?? '',
-      generatedAt: generatedAtRaw is Timestamp
-          ? generatedAtRaw.toDate()
-          : DateTime.tryParse(generatedAtRaw?.toString() ?? '') ??
-              DateTime.now(),
+      generatedAt:
+          DateTime.tryParse(generatedAtRaw?.toString() ?? '') ?? DateTime.now(),
       movie: movie,
     );
   }

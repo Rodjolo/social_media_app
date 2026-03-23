@@ -10,11 +10,14 @@ class PocketBasePostRepo implements PostRepo {
   Future<void> createPost(Post post) async {
     try {
       final pb = await PocketBaseClient.getInstance();
+      final postBody = Map<String, dynamic>.from(post.toJson())..remove('id');
+
       await pb.collection(BackendConfig.postsCollection).create(
-            body: post.toJson(),
+            body: postBody,
           );
     } on ClientException catch (e) {
-      throw Exception(e.response['message'] ?? 'Failed to create post');
+      throw Exception(
+          _formatPocketBaseError(e, fallback: 'Failed to create post'));
     } catch (e) {
       throw Exception('Failed to create post: $e');
     }
@@ -26,7 +29,8 @@ class PocketBasePostRepo implements PostRepo {
       final pb = await PocketBaseClient.getInstance();
       await pb.collection(BackendConfig.postsCollection).delete(postId);
     } on ClientException catch (e) {
-      throw Exception(e.response['message'] ?? 'Failed to delete post');
+      throw Exception(
+          _formatPocketBaseError(e, fallback: 'Failed to delete post'));
     } catch (e) {
       throw Exception('Failed to delete post: $e');
     }
@@ -43,7 +47,8 @@ class PocketBasePostRepo implements PostRepo {
 
       return result.map(_mapRecordToPost).toList();
     } on ClientException catch (e) {
-      throw Exception(e.response['message'] ?? 'Failed to fetch posts');
+      throw Exception(
+          _formatPocketBaseError(e, fallback: 'Failed to fetch posts'));
     } catch (e) {
       throw Exception('Failed to fetch posts: $e');
     }
@@ -61,7 +66,9 @@ class PocketBasePostRepo implements PostRepo {
 
       return result.map(_mapRecordToPost).toList();
     } on ClientException catch (e) {
-      throw Exception(e.response['message'] ?? 'Failed to fetch posts by user');
+      throw Exception(
+        _formatPocketBaseError(e, fallback: 'Failed to fetch posts by user'),
+      );
     } catch (e) {
       throw Exception('Failed to fetch posts by user: $e');
     }
@@ -126,5 +133,20 @@ class PocketBasePostRepo implements PostRepo {
       'id': record.id,
       ...record.toJson(),
     });
+  }
+
+  String _formatPocketBaseError(
+    ClientException error, {
+    required String fallback,
+  }) {
+    final response = error.response;
+    final message = response['message']?.toString();
+    final data = response['data'];
+
+    if (data is Map && data.isNotEmpty) {
+      return '$fallback: $message | $data';
+    }
+
+    return message?.isNotEmpty == true ? '$fallback: $message' : fallback;
   }
 }
