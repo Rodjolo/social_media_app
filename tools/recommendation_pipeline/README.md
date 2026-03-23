@@ -97,6 +97,15 @@ Notes:
 - the output keeps MovieLens ids, but fills `posterUrl`, `overview`, `genres`, `year`, and `popularity` from TMDB when available
 - if TMDB has no match, the script falls back to the original MovieLens data instead of failing the whole export
 
+To enrich and import into PocketBase in one step:
+
+```powershell
+$env:TMDB_BEARER_TOKEN="YOUR_TMDB_BEARER_TOKEN"
+.\tools\recommendation_pipeline\sync_movies_with_tmdb.ps1 `
+  -SuperuserEmail "admin@example.com" `
+  -SuperuserPassword "your_password"
+```
+
 Generate recommendations:
 
 ```bash
