@@ -50,13 +50,14 @@ def main():
     response.raise_for_status()
 
     items = response.json().get("items", [])
+    movie_id_map = build_movie_id_map(args.base_url, headers)
     rows = [
         {
-            "movieId": item.get("movieId"),
+            "movieId": normalize_movie_id(item.get("movieId"), movie_id_map),
             "rating": float(item.get("rating", 0)),
         }
         for item in items
-        if item.get("movieId") is not None
+        if normalize_movie_id(item.get("movieId"), movie_id_map) is not None
     ]
 
     Path(args.output_file).write_text(
@@ -64,6 +65,50 @@ def main():
         encoding="utf-8",
     )
     print(f"Saved {len(rows)} ratings to {args.output_file}")
+
+
+def build_movie_id_map(base_url: str, headers: dict):
+    url = f"{base_url.rstrip('/')}/api/collections/movies/records"
+    page = 1
+    mapping = {}
+
+    while True:
+        response = requests.get(
+            url,
+            headers=headers,
+            params={
+                "page": page,
+                "perPage": 500,
+                "fields": "id,movieId",
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        items = payload.get("items", [])
+
+        for item in items:
+            record_id = item.get("id")
+            external_movie_id = item.get("movieId")
+            if record_id and external_movie_id is not None:
+                mapping[str(record_id)] = str(external_movie_id)
+
+        if page >= payload.get("totalPages", 0):
+            break
+        page += 1
+
+    return mapping
+
+
+def normalize_movie_id(movie_id_value, movie_id_map):
+    if movie_id_value is None:
+        return None
+
+    movie_id = str(movie_id_value)
+    if movie_id.isdigit():
+        return movie_id
+
+    return movie_id_map.get(movie_id)
 
 
 if __name__ == "__main__":

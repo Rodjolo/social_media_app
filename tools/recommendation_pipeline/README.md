@@ -127,6 +127,12 @@ python pocketbase_export_ratings.py ^
   --output-file user_ratings.json
 ```
 
+Note:
+
+- if older `ratings.movieId` values contain PocketBase internal record ids instead
+  of MovieLens ids, the exporter will try to resolve them through the `movies`
+  collection automatically.
+
 Generate recommendations:
 
 ```bash
