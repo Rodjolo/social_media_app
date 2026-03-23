@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:socail_media_app/features/chat/presentation/cubits/chat_cubit.dart';
-import 'package:socail_media_app/features/chat/presentation/pages/chat_list_screen.dart';
+import 'package:socail_media_app/features/chat/presentation/pages/chat_disabled_page.dart';
 import 'package:socail_media_app/features/home/presentation/components/my_drawer_tile.dart';
 import 'package:socail_media_app/features/movies/presentation/pages/movies_page.dart';
 import 'package:socail_media_app/features/movies/presentation/pages/recommendations_page.dart';
-import 'package:socail_media_app/features/profile/presentation/cubit/profile_cubit.dart';
 import 'package:socail_media_app/features/search/presentation/pages/search_page.dart';
 import 'package:socail_media_app/features/settings/pages/settings_page.dart';
 
@@ -65,15 +63,7 @@ class MyDrawer extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => MultiBlocProvider(
-                        providers: [
-                          BlocProvider.value(
-                            value: context.read<ProfileCubit>(),
-                          ),
-                          BlocProvider.value(value: context.read<ChatCubit>()),
-                        ],
-                        child: const ChatListScreen(),
-                      ),
+                      builder: (context) => const ChatDisabledPage(),
                     ),
                   );
                 },
