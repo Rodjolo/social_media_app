@@ -46,7 +46,7 @@ class Post {
       'userName': userName,
       'text': text,
       'imageUrl': imageUrl,
-      'timestamp': Timestamp.fromDate(timestamp),
+      'timestamp': timestamp.toIso8601String(),
       'likes': likes,
       'comments': comments.map((comment) => comment.toJson()).toList(),
     };
@@ -58,6 +58,7 @@ class Post {
     final List<Comment> comments = commentsList
         .map((comment) => Comment.fromJson(comment as Map<String, dynamic>))
         .toList();
+    final rawTimestamp = json['timestamp'];
 
     return Post(
       id: json['id']?.toString() ?? '',
@@ -65,7 +66,9 @@ class Post {
       userName: json['userName']?.toString() ?? 'Unknown User',
       text: json['text']?.toString() ?? '',
       imageUrl: json['imageUrl']?.toString() ?? '',
-      timestamp: (json['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      timestamp: rawTimestamp is Timestamp
+          ? rawTimestamp.toDate()
+          : DateTime.tryParse(rawTimestamp?.toString() ?? '') ?? DateTime.now(),
       likes: List<String>.from(json['likes'] ?? []),
       comments: comments,
     );

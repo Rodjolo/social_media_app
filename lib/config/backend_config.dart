@@ -10,4 +10,5 @@ class BackendConfig {
   static const String ratingsCollection = 'ratings';
   static const String moviesCollection = 'movies';
   static const String recommendationsCollection = 'recommendations';
+  static const String mediaCollection = 'media';
 }

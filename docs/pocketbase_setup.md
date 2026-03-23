@@ -63,6 +63,22 @@ Fields:
 - `comments` (`json`)
 - `timestamp` (`date`)
 
+### `media`
+
+Fields:
+
+- `ownerId` (`text`)
+- `category` (`text`)
+- `file` (`file`, max 1)
+
+Recommended API rules for local development:
+
+- `list`: `@request.auth.id != ""`
+- `view`: `@request.auth.id != ""`
+- `create`: `@request.auth.id != ""`
+- `update`: `@request.auth.id != ""`
+- `delete`: `@request.auth.id != ""`
+
 ### `movies`
 
 Fields:

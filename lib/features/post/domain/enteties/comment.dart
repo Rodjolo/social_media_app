@@ -25,19 +25,23 @@ class Comment {
       'userId': userId,
       'userName': userName,
       'text': text,
-      'timestamp': Timestamp.fromDate(timestamp),
+      'timestamp': timestamp.toIso8601String(),
     };
   }
 
   // convert json to comment
   factory Comment.fromJson(Map<String, dynamic> json) {
+    final rawTimestamp = json['timestamp'];
+
     return Comment(
       id: json['id'] as String,
       postId: json['postId'] as String,
       userId: json['userId'] as String,
       userName: json['userName'] as String,
       text: json['text'] as String,
-      timestamp: (json['timestamp'] as Timestamp).toDate(),
+      timestamp: rawTimestamp is Timestamp
+          ? rawTimestamp.toDate()
+          : DateTime.tryParse(rawTimestamp?.toString() ?? '') ?? DateTime.now(),
     );
   }
 }

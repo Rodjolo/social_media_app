@@ -5,16 +5,16 @@ import 'package:socail_media_app/features/auth/presentation/cubits/auth_cubit.da
 import 'package:socail_media_app/features/auth/presentation/cubits/auth_states.dart';
 import 'package:socail_media_app/features/movies/data/firebase_movie_repo.dart';
 import 'package:socail_media_app/features/movies/presentation/cubits/movie_cubit.dart';
+import 'package:socail_media_app/features/post/data/pocketbase_post_repo.dart';
 import 'package:socail_media_app/features/post/presentation/cubits/post_cubit.dart';
 import 'package:socail_media_app/features/profile/data/pocketbase_profile_repo.dart';
 import 'package:socail_media_app/features/profile/presentation/cubit/profile_cubit.dart';
 import 'package:socail_media_app/features/search/data/pocketbase_search_repo.dart';
 import 'package:socail_media_app/features/search/presentation/cubits/search_cubit.dart';
-import 'package:socail_media_app/features/storage/data/supabase_storage_repo.dart';
+import 'package:socail_media_app/features/storage/data/pocketbase_storage_repo.dart';
 import 'package:socail_media_app/themes/theme_cubit.dart';
 import 'features/auth/presentation/pages/auth_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
-import 'features/post/data/firebase_post_repo.dart';
 
 class MyApp extends StatelessWidget {
   //auth repo
@@ -24,10 +24,10 @@ class MyApp extends StatelessWidget {
   final pocketBaseProfileRepo = PocketBaseProfileRepo();
 
   //storage repo
-  final supabaseStorageRepo = SupabaseStorageRepo();
+  final pocketBaseStorageRepo = PocketBaseStorageRepo();
 
   //post repo
-  final firebasePostRepo = FirebasePostRepo();
+  final pocketBasePostRepo = PocketBasePostRepo();
 
   // serach repo
   final pocketBaseSearchRepo = PocketBaseSearchRepo();
@@ -51,14 +51,16 @@ class MyApp extends StatelessWidget {
         BlocProvider<ProfileCubit>(
           create: (context) => ProfileCubit(
             profileRepo: pocketBaseProfileRepo,
-            storageRepo: supabaseStorageRepo,
+            storageRepo: pocketBaseStorageRepo,
           ),
         ),
 
         //post cubit
         BlocProvider<PostCubit>(
           create: (context) => PostCubit(
-              postRepo: firebasePostRepo, storageRepo: supabaseStorageRepo),
+            postRepo: pocketBasePostRepo,
+            storageRepo: pocketBaseStorageRepo,
+          ),
         ),
 
         //search cubit
