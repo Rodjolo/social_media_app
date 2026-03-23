@@ -40,6 +40,7 @@ Expected files inside `dataset_dir`:
 
 - `movies.csv`
 - `ratings.csv`
+- `links.csv`
 
 ## Local ratings format
 
@@ -65,6 +66,36 @@ python movielens_movies_export.py ^
 ```
 
 Then upload `movies_seed.json` into the `movies` collection.
+
+To enrich MovieLens with posters and descriptions from TMDB:
+
+```bash
+python enrich_movies_with_tmdb.py ^
+  --dataset-dir path/to/ml-latest-small ^
+  --tmdb-token YOUR_TMDB_BEARER_TOKEN ^
+  --output-file movies_enriched.json ^
+  --limit 200
+```
+
+Then import `movies_enriched.json` instead of `movies_seed.json`.
+
+You can also enrich an existing export in place:
+
+```bash
+python enrich_movies_with_tmdb.py ^
+  --dataset-dir path/to/ml-latest-small ^
+  --input-file movies_seed.json ^
+  --tmdb-token YOUR_TMDB_BEARER_TOKEN ^
+  --output-file movies_enriched.json ^
+  --language ru-RU
+```
+
+Notes:
+
+- the script uses `links.csv` to map each MovieLens `movieId` to a TMDB `tmdbId`
+- `--tmdb-token` can be omitted if `TMDB_BEARER_TOKEN` is set in the environment
+- the output keeps MovieLens ids, but fills `posterUrl`, `overview`, `genres`, `year`, and `popularity` from TMDB when available
+- if TMDB has no match, the script falls back to the original MovieLens data instead of failing the whole export
 
 Generate recommendations:
 
@@ -112,8 +143,8 @@ python pocketbase_import_json.py ^
   --superuser-email admin@example.com ^
   --superuser-password your_password ^
   --collection movies ^
-  --json-file movies_seed.json ^
-  --lookup-template "movieId=\"{movieId}\""
+  --json-file movies_enriched.json ^
+  --lookup-template "movieId={movieId}"
 ```
 
 Export one user's ratings from PocketBase:
@@ -152,7 +183,7 @@ python pocketbase_import_json.py ^
   --superuser-password your_password ^
   --collection recommendations ^
   --json-file recommendations.json ^
-  --lookup-template "uid=\"{uid}\" && movieId=\"{movieId}\""
+  --lookup-template "uid={uid} && movieId={movieId}"
 ```
 
 ## Optional Firestore upload
@@ -174,3 +205,4 @@ python movielens_recommender.py ^
 - This pipeline is intentionally simple and diploma-friendly.
 - It uses item-based collaborative filtering from a user-item matrix.
 - For production, you would likely move recommendation generation to a backend job.
+- TMDB data usage should follow their attribution and API terms: [TMDB docs](https://developer.themoviedb.org/), [TMDB API reference](https://developer.themoviedb.org/reference/movie-details), [TMDB configuration endpoint](https://developer.themoviedb.org/reference/configuration-details)
