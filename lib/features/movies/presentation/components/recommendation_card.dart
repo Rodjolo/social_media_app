@@ -9,6 +9,8 @@ class RecommendationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final posterUrl = item.movie.posterUrl.trim();
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
@@ -21,10 +23,10 @@ class RecommendationCard extends StatelessWidget {
               child: SizedBox(
                 width: 84,
                 height: 120,
-                child: item.movie.posterUrl.isEmpty
+                child: !_hasUsablePosterUrl(posterUrl)
                     ? _FallbackPoster(title: item.movie.title)
                     : CachedNetworkImage(
-                        imageUrl: item.movie.posterUrl,
+                        imageUrl: posterUrl,
                         fit: BoxFit.cover,
                         placeholder: (_, __) => const Center(
                           child: CircularProgressIndicator(),
@@ -69,6 +71,11 @@ class RecommendationCard extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _hasUsablePosterUrl(String value) {
+  final uri = Uri.tryParse(value);
+  return uri != null && uri.hasScheme && uri.host.isNotEmpty;
 }
 
 class _FallbackPoster extends StatelessWidget {

@@ -106,6 +106,10 @@ $env:TMDB_BEARER_TOKEN="YOUR_TMDB_BEARER_TOKEN"
   -SuperuserPassword "your_password"
 ```
 
+This helper can also mirror posters into your local PocketBase `media`
+collection, so the Flutter emulator loads images from PocketBase instead of
+directly from TMDB.
+
 Generate recommendations:
 
 ```bash

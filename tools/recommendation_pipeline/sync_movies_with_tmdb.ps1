@@ -9,7 +9,8 @@ param(
     [string]$InputFile = ".\assets\db\movies_seed.json",
     [string]$OutputFile = ".\assets\db\movies_enriched.json",
     [int]$Limit = 200,
-    [string]$Language = "ru-RU"
+    [string]$Language = "ru-RU",
+    [switch]$MirrorPosters = $true
 )
 
 if ([string]::IsNullOrWhiteSpace($TmdbToken)) {
@@ -42,6 +43,19 @@ python .\tools\recommendation_pipeline\pocketbase_import_json.py `
 
 if ($LASTEXITCODE -ne 0) {
     throw "PocketBase import failed."
+}
+
+if ($MirrorPosters) {
+    Write-Host "Step 3/3: Mirroring posters into PocketBase media..."
+    python .\tools\recommendation_pipeline\mirror_movie_posters_to_pocketbase.py `
+        --base-url $BaseUrl `
+        --superuser-email $SuperuserEmail `
+        --superuser-password $SuperuserPassword `
+        --limit $Limit
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Poster mirroring failed."
+    }
 }
 
 Write-Host "Done. Open the Movies screen and pull to refresh."

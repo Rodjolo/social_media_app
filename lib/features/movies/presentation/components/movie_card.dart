@@ -21,6 +21,7 @@ class MovieCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentRating = userRating?.rating ?? 0;
     final isLiked = userRating?.liked ?? false;
+    final posterUrl = movie.posterUrl.trim();
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -37,10 +38,10 @@ class MovieCard extends StatelessWidget {
                   child: SizedBox(
                     width: 84,
                     height: 120,
-                    child: movie.posterUrl.isEmpty
+                    child: !_hasUsablePosterUrl(posterUrl)
                         ? _PosterPlaceholder(title: movie.title)
                         : CachedNetworkImage(
-                            imageUrl: movie.posterUrl,
+                            imageUrl: posterUrl,
                             fit: BoxFit.cover,
                             placeholder: (_, __) => const Center(
                               child: CircularProgressIndicator(),
@@ -120,6 +121,11 @@ class MovieCard extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _hasUsablePosterUrl(String value) {
+  final uri = Uri.tryParse(value);
+  return uri != null && uri.hasScheme && uri.host.isNotEmpty;
 }
 
 class _PosterPlaceholder extends StatelessWidget {
