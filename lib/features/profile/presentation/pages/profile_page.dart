@@ -124,6 +124,18 @@ class _ProfilePageState extends State<ProfilePage> {
                             color: Theme.of(context).colorScheme.primary),
                       ),
                     ),
+                    if (isOwnPost) ...[
+                      const SizedBox(height: 8),
+                      Center(
+                        child: SelectableText(
+                          'UID: ${user.uid}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 25),
 
                     // profile image
