@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 from pathlib import Path
 
 import requests
@@ -34,14 +35,19 @@ def auth_headers(base_url: str, email: str, password: str):
 def build_filter(template: str, row: dict) -> str:
     result = template
     for key, value in row.items():
-        raw_value = str(value).replace('"', '\\"')
+        raw_value = str(value)
+        serialized_value = raw_value if is_numeric_like(raw_value) else json.dumps(raw_value)
 
-        quoted_placeholder = f'"{{{key}}}"'
-        if quoted_placeholder in result:
-            result = result.replace(quoted_placeholder, f'"{raw_value}"')
-        else:
-            result = result.replace(f"{{{key}}}", raw_value)
+        result = result.replace(f'"{{{key}}}"', serialized_value)
+        result = result.replace(f"'{{{key}}}'", serialized_value)
+        result = result.replace(f"{{{key}}}", serialized_value)
+
+    result = re.sub(r"(\w+)=([A-Za-z_][A-Za-z0-9_-]*)", r'\1="\2"', result)
     return result
+
+
+def is_numeric_like(value: str) -> bool:
+    return value.replace(".", "", 1).isdigit()
 
 
 def find_existing_record(base_url: str, headers: dict, collection: str, lookup_filter: str):
