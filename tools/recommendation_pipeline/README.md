@@ -80,6 +80,28 @@ The script writes a JSON array that can be uploaded into:
 
 - `recommendations/{userId}/items`
 
+Upload movies:
+
+```bash
+python firestore_import_json.py ^
+  --service-account path/to/serviceAccount.json ^
+  --collection movies ^
+  --json-file movies_seed.json ^
+  --doc-id-field id
+```
+
+Upload recommendations:
+
+```bash
+python firestore_import_json.py ^
+  --service-account path/to/serviceAccount.json ^
+  --collection recommendations ^
+  --subcollection-user-id YOUR_UID ^
+  --subcollection items ^
+  --json-file recommendations.json ^
+  --doc-id-field movieId
+```
+
 ## Optional Firestore upload
 
 If you have a Firebase service account JSON, you can upload results directly:
