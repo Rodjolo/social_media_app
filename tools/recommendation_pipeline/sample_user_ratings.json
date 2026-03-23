@@ -1,0 +1,7 @@
+[
+  { "movieId": 1, "rating": 5.0 },
+  { "movieId": 32, "rating": 4.0 },
+  { "movieId": 296, "rating": 5.0 },
+  { "movieId": 356, "rating": 4.5 },
+  { "movieId": 593, "rating": 4.0 }
+]

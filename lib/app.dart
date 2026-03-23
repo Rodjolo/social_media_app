@@ -5,6 +5,8 @@ import 'package:socail_media_app/features/auth/presentation/cubits/auth_cubit.da
 import 'package:socail_media_app/features/auth/presentation/cubits/auth_states.dart';
 import 'package:socail_media_app/features/chat/domain/repos/firebase_chat_repo.dart';
 import 'package:socail_media_app/features/chat/presentation/cubits/chat_cubit.dart';
+import 'package:socail_media_app/features/movies/data/firebase_movie_repo.dart';
+import 'package:socail_media_app/features/movies/presentation/cubits/movie_cubit.dart';
 import 'package:socail_media_app/features/post/presentation/cubits/post_cubit.dart';
 import 'package:socail_media_app/features/profile/presentation/cubit/profile_cubit.dart';
 import 'package:socail_media_app/features/search/data/firebase_search_repo.dart';
@@ -34,6 +36,9 @@ class MyApp extends StatelessWidget {
 
   // chat repo
   final firebaseChatRepo = FirebaseChatRepo();
+
+  // movie repo
+  final firebaseMovieRepo = FirebaseMovieRepo();
 
   MyApp({super.key});
 
@@ -72,6 +77,10 @@ class MyApp extends StatelessWidget {
             chatRepo: firebaseChatRepo,
             authCubit: context.read<AuthCubit>(),
           ),
+        ),
+
+        BlocProvider<MovieCubit>(
+          create: (context) => MovieCubit(movieRepo: firebaseMovieRepo),
         ),
 
         //theme cubit

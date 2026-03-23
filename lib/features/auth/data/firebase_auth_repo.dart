@@ -46,10 +46,15 @@ class FirebaseAuthRepo implements AuthRepo {
       );
 
       //save user data in firestore
-      await firebaseFirestore
-          .collection("users")
-          .doc(user.uid)
-          .set(user.toJson());
+      await firebaseFirestore.collection("users").doc(user.uid).set({
+        ...user.toJson(),
+        'bio': '',
+        'profileImageUrl': '',
+        'followers': <String>[],
+        'following': <String>[],
+        'favoriteGenres': <String>[],
+        'movieOnboardingCompleted': false,
+      });
 
       return user;
     } catch (e) {
@@ -71,12 +76,10 @@ class FirebaseAuthRepo implements AuthRepo {
     }
 
     // fetch user document from firestore
-      DocumentSnapshot userDoc = await firebaseFirestore
-          .collection('users')
-          .doc(firebaseUser.uid)
-          .get();
+    DocumentSnapshot userDoc =
+        await firebaseFirestore.collection('users').doc(firebaseUser.uid).get();
 
-    if(!userDoc.exists){
+    if (!userDoc.exists) {
       return null;
     }
 

@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:socail_media_app/features/chat/presentation/cubits/chat_cubit.dart';
 import 'package:socail_media_app/features/chat/presentation/pages/chat_list_screen.dart';
 import 'package:socail_media_app/features/home/presentation/components/my_drawer_tile.dart';
+import 'package:socail_media_app/features/movies/presentation/pages/movies_page.dart';
+import 'package:socail_media_app/features/movies/presentation/pages/recommendations_page.dart';
 import 'package:socail_media_app/features/profile/presentation/cubit/profile_cubit.dart';
 import 'package:socail_media_app/features/search/presentation/pages/search_page.dart';
 import 'package:socail_media_app/features/settings/pages/settings_page.dart';
@@ -22,7 +24,6 @@ class MyDrawer extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
           child: Column(
             children: [
-              //logo
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 50.0),
                 child: Icon(
@@ -31,43 +32,33 @@ class MyDrawer extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-
               Divider(
                 color: Theme.of(context).colorScheme.secondary,
               ),
-
-              //home tile
               MyDrawerTile(
-                title: 'Г Л А В Н А Я',
+                title: 'H O M E',
                 icon: Icons.home,
                 onTap: () => Navigator.of(context).pop(),
               ),
-
-              //profile tile
               MyDrawerTile(
-                title: 'П Р О Ф И Л Ь',
+                title: 'P R O F I L E',
                 icon: Icons.person,
                 onTap: () {
-                  //pop menu drawer
                   Navigator.of(context).pop();
 
                   final user = context.read<AuthCubit>().currentUser;
-                  String? uid = user!.uid;
+                  final uid = user!.uid;
 
-                  //navigating to profile page
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfilePage(
-                          uid: uid,
-                        ),
-                      ));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfilePage(uid: uid),
+                    ),
+                  );
                 },
               ),
-
-              //chat tile
               MyDrawerTile(
-                title: 'С О О Б Щ Е Н И Я',
+                title: 'C H A T S',
                 icon: Icons.chat,
                 onTap: () {
                   Navigator.pop(context);
@@ -77,43 +68,71 @@ class MyDrawer extends StatelessWidget {
                       builder: (context) => MultiBlocProvider(
                         providers: [
                           BlocProvider.value(
-                              value: context.read<ProfileCubit>()),
+                            value: context.read<ProfileCubit>(),
+                          ),
                           BlocProvider.value(value: context.read<ChatCubit>()),
                         ],
-                        child: ChatListScreen(),
+                        child: const ChatListScreen(),
                       ),
                     ),
                   );
                 },
               ),
-              
-              //search tile
               MyDrawerTile(
-                title: 'П О И С К',
+                title: 'M O V I E S',
+                icon: Icons.movie,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MoviesPage(),
+                    ),
+                  );
+                },
+              ),
+              MyDrawerTile(
+                title: 'R E C O M M E N D',
+                icon: Icons.auto_awesome,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RecommendationsPage(),
+                    ),
+                  );
+                },
+              ),
+              MyDrawerTile(
+                title: 'S E A R C H',
                 icon: Icons.search,
-                onTap: () => Navigator.push(
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const SearchPage(),
-                    )),
+                    ),
+                  );
+                },
               ),
-
-              //settings tile
               MyDrawerTile(
-                title: 'Н А С Т Р О Й К И',
+                title: 'S E T T I N G S',
                 icon: Icons.settings,
-                onTap: () => Navigator.push(
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const SettingsPage(),
-                    )),
+                    ),
+                  );
+                },
               ),
-
               const Spacer(),
-
-              //logout tile
               MyDrawerTile(
-                title: 'В Ы Й Т И',
+                title: 'L O G O U T',
                 icon: Icons.login,
                 onTap: () => context.read<AuthCubit>().logout(),
               ),
