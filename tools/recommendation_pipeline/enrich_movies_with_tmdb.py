@@ -159,7 +159,7 @@ def main():
 
     links_df = pd.read_csv(dataset_dir / "links.csv")
     links_map = {
-        str(row["movieId"]): str(int(row["tmdbId"]))
+        str(int(row["movieId"])): str(int(row["tmdbId"]))
         for _, row in links_df.iterrows()
         if pd.notna(row.get("tmdbId"))
     }
