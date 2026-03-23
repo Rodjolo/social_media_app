@@ -34,7 +34,13 @@ def auth_headers(base_url: str, email: str, password: str):
 def build_filter(template: str, row: dict) -> str:
     result = template
     for key, value in row.items():
-        result = result.replace(f"{{{key}}}", str(value).replace('"', '\\"'))
+        raw_value = str(value).replace('"', '\\"')
+
+        quoted_placeholder = f'"{{{key}}}"'
+        if quoted_placeholder in result:
+            result = result.replace(quoted_placeholder, f'"{raw_value}"')
+        else:
+            result = result.replace(f"{{{key}}}", raw_value)
     return result
 
 
