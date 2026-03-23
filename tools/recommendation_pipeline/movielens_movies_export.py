@@ -44,7 +44,7 @@ def main():
         title = str(row["title"])
         records.append(
             {
-                "id": str(row["movieId"]),
+                "movieId": str(row["movieId"]),
                 "title": clean_title(title),
                 "genres": split_genres(row.get("genres", "")),
                 "posterUrl": "",

@@ -102,6 +102,53 @@ python firestore_import_json.py ^
   --doc-id-field movieId
 ```
 
+## PocketBase flow
+
+Import movies into PocketBase:
+
+```bash
+python pocketbase_import_json.py ^
+  --base-url http://127.0.0.1:8090 ^
+  --superuser-email admin@example.com ^
+  --superuser-password your_password ^
+  --collection movies ^
+  --json-file movies_seed.json ^
+  --lookup-template "movieId=\"{movieId}\""
+```
+
+Export one user's ratings from PocketBase:
+
+```bash
+python pocketbase_export_ratings.py ^
+  --base-url http://127.0.0.1:8090 ^
+  --superuser-email admin@example.com ^
+  --superuser-password your_password ^
+  --user-id YOUR_UID ^
+  --output-file user_ratings.json
+```
+
+Generate recommendations:
+
+```bash
+python movielens_recommender.py ^
+  --dataset-dir path/to/ml-latest-small ^
+  --user-id YOUR_UID ^
+  --user-ratings-file user_ratings.json ^
+  --output-file recommendations.json
+```
+
+Import recommendations into PocketBase:
+
+```bash
+python pocketbase_import_json.py ^
+  --base-url http://127.0.0.1:8090 ^
+  --superuser-email admin@example.com ^
+  --superuser-password your_password ^
+  --collection recommendations ^
+  --json-file recommendations.json ^
+  --lookup-template "uid=\"{uid}\" && movieId=\"{movieId}\""
+```
+
 ## Optional Firestore upload
 
 If you have a Firebase service account JSON, you can upload results directly:

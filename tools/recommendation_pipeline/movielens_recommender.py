@@ -67,7 +67,13 @@ def load_user_ratings(user_ratings_file: Path, synthetic_user_id: int):
     return pd.DataFrame(rows)
 
 
-def build_recommendations(movies_df, ratings_df, target_user_id: int, top_n: int):
+def build_recommendations(
+    movies_df,
+    ratings_df,
+    target_user_id: int,
+    top_n: int,
+    app_user_id: str,
+):
     matrix = ratings_df.pivot_table(
         index="userId",
         columns="movieId",
@@ -106,6 +112,7 @@ def build_recommendations(movies_df, ratings_df, target_user_id: int, top_n: int
         year = extract_year(title)
         recommendations.append(
             {
+                "uid": app_user_id,
                 "movieId": str(movie_id),
                 "score": round(float(score), 4),
                 "reason": "Recommended from similar rating patterns in MovieLens.",
@@ -191,6 +198,7 @@ def main():
         ratings_df=merged_ratings,
         target_user_id=synthetic_user_id,
         top_n=args.top_n,
+        app_user_id=args.user_id,
     )
 
     export_json(recommendations, output_file)

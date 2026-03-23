@@ -83,6 +83,7 @@ Recommended API rules for local development:
 
 Fields:
 
+- `movieId` (`text`)
 - `title` (`text`)
 - `genres` (`json`)
 - `posterUrl` (`text`)

@@ -19,8 +19,10 @@ class PocketBaseMovieRepo implements MovieRepo {
               );
 
       return result.items
-          .map(
-              (record) => Movie.fromJson({'id': record.id, ...record.toJson()}))
+          .map((record) => Movie.fromJson({
+                'id': record.data['movieId']?.toString() ?? record.id,
+                ...record.toJson(),
+              }))
           .toList();
     } on ClientException catch (e) {
       throw Exception(
