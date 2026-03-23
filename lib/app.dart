@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:socail_media_app/features/auth/data/firebase_auth_repo.dart';
+import 'package:socail_media_app/features/auth/data/pocketbase_auth_repo.dart';
 import 'package:socail_media_app/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:socail_media_app/features/auth/presentation/cubits/auth_states.dart';
 import 'package:socail_media_app/features/movies/data/firebase_movie_repo.dart';
 import 'package:socail_media_app/features/movies/presentation/cubits/movie_cubit.dart';
 import 'package:socail_media_app/features/post/presentation/cubits/post_cubit.dart';
+import 'package:socail_media_app/features/profile/data/pocketbase_profile_repo.dart';
 import 'package:socail_media_app/features/profile/presentation/cubit/profile_cubit.dart';
-import 'package:socail_media_app/features/search/data/firebase_search_repo.dart';
+import 'package:socail_media_app/features/search/data/pocketbase_search_repo.dart';
 import 'package:socail_media_app/features/search/presentation/cubits/search_cubit.dart';
 import 'package:socail_media_app/features/storage/data/supabase_storage_repo.dart';
 import 'package:socail_media_app/themes/theme_cubit.dart';
 import 'features/auth/presentation/pages/auth_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/post/data/firebase_post_repo.dart';
-import 'features/profile/data/firebase_profile_repo.dart';
 
 class MyApp extends StatelessWidget {
   //auth repo
-  final firebaseAuthRepo = FirebaseAuthRepo();
+  final pocketBaseAuthRepo = PocketBaseAuthRepo();
 
   //profile repo
-  final firebaseProfileRepo = FirebaseProfileRepo();
+  final pocketBaseProfileRepo = PocketBaseProfileRepo();
 
   //storage repo
   final supabaseStorageRepo = SupabaseStorageRepo();
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
   final firebasePostRepo = FirebasePostRepo();
 
   // serach repo
-  final firebaseSearchRepo = FirebaseSearchRepo();
+  final pocketBaseSearchRepo = PocketBaseSearchRepo();
 
   // movie repo
   final firebaseMovieRepo = FirebaseMovieRepo();
@@ -44,13 +44,13 @@ class MyApp extends StatelessWidget {
         //auth cubit
         BlocProvider<AuthCubit>(
           create: (context) =>
-              AuthCubit(authRepo: firebaseAuthRepo)..checkAuth(),
+              AuthCubit(authRepo: pocketBaseAuthRepo)..checkAuth(),
         ),
 
         //profile cubit
         BlocProvider<ProfileCubit>(
           create: (context) => ProfileCubit(
-            profileRepo: firebaseProfileRepo,
+            profileRepo: pocketBaseProfileRepo,
             storageRepo: supabaseStorageRepo,
           ),
         ),
@@ -63,7 +63,7 @@ class MyApp extends StatelessWidget {
 
         //search cubit
         BlocProvider<SearchCubit>(
-          create: (context) => SearchCubit(searchRepo: firebaseSearchRepo),
+          create: (context) => SearchCubit(searchRepo: pocketBaseSearchRepo),
         ),
 
         BlocProvider<MovieCubit>(

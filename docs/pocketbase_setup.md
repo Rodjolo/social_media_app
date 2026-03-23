@@ -28,11 +28,27 @@ Fields:
 
 - `name` (`text`)
 - `bio` (`text`)
+- `profileImageUrl` (`text`)
 - `profileImage` (`file`, max 1)
 - `followers` (`json`)
 - `following` (`json`)
 - `favoriteGenres` (`json`)
 - `movieOnboardingCompleted` (`bool`)
+
+PocketBase auth settings:
+
+- collection type: `Auth`
+- enable email/password authentication
+- require unique email
+- allow authenticated users to manage their own record
+
+Recommended API rules for initial local development:
+
+- list rule: `@request.auth.id != ""`
+- view rule: `@request.auth.id != ""`
+- create rule: empty
+- update rule: `@request.auth.id = id`
+- delete rule: `@request.auth.id = id`
 
 ### `posts`
 
