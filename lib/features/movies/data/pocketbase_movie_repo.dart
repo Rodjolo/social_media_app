@@ -18,12 +18,17 @@ class PocketBaseMovieRepo implements MovieRepo {
                 sort: '-popularity',
               );
 
-      return result.items
-          .map((record) => Movie.fromJson({
-                'id': record.data['movieId']?.toString() ?? record.id,
-                ...record.toJson(),
-              }))
-          .toList();
+      final dedupedMovies = <String, Movie>{};
+      for (final record in result.items) {
+        final movie = Movie.fromJson({
+          'id': record.data['movieId']?.toString() ?? record.id,
+          ...record.toJson(),
+          'posterUrl': _normalizePosterUrl(record.data['posterUrl']),
+        });
+        dedupedMovies[movie.id] = movie;
+      }
+
+      return dedupedMovies.values.toList();
     } on ClientException catch (e) {
       throw Exception(
           _formatPocketBaseError(e, fallback: 'Failed to fetch movies'));
@@ -106,7 +111,7 @@ class PocketBaseMovieRepo implements MovieRepo {
           id: data['movieId']?.toString() ?? '',
           title: data['title']?.toString() ?? 'Unknown movie',
           genres: List<String>.from(data['genres'] ?? const []),
-          posterUrl: data['posterUrl']?.toString() ?? '',
+          posterUrl: _normalizePosterUrl(data['posterUrl']),
           overview: data['overview']?.toString() ?? '',
           year: (data['year'] as num?)?.toInt() ?? 0,
           popularity: (data['popularity'] as num?)?.toDouble() ?? 0,
@@ -136,5 +141,16 @@ class PocketBaseMovieRepo implements MovieRepo {
     }
 
     return message?.isNotEmpty == true ? '$fallback: $message' : fallback;
+  }
+
+  String _normalizePosterUrl(dynamic rawValue) {
+    final value = rawValue?.toString().trim() ?? '';
+    if (value.isEmpty) {
+      return '';
+    }
+
+    return value
+        .replaceFirst('http://127.0.0.1:8090', BackendConfig.pocketBaseUrl)
+        .replaceFirst('http://localhost:8090', BackendConfig.pocketBaseUrl);
   }
 }

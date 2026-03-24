@@ -35,8 +35,7 @@ def auth_headers(base_url: str, email: str, password: str):
 def build_filter(template: str, row: dict) -> str:
     result = template
     for key, value in row.items():
-        raw_value = str(value)
-        serialized_value = raw_value if is_numeric_like(raw_value) else json.dumps(raw_value)
+        serialized_value = serialize_filter_value(value)
 
         result = result.replace(f'"{{{key}}}"', serialized_value)
         result = result.replace(f"'{{{key}}}'", serialized_value)
@@ -46,8 +45,12 @@ def build_filter(template: str, row: dict) -> str:
     return result
 
 
-def is_numeric_like(value: str) -> bool:
-    return value.replace(".", "", 1).isdigit()
+def serialize_filter_value(value) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    return json.dumps(str(value))
 
 
 def find_existing_record(base_url: str, headers: dict, collection: str, lookup_filter: str):

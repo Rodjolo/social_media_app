@@ -1,5 +1,6 @@
 param(
     [string]$BaseUrl = "http://127.0.0.1:8090",
+    [string]$PublicBaseUrl = "http://10.0.2.2:8090",
     [Parameter(Mandatory = $true)]
     [string]$SuperuserEmail,
     [Parameter(Mandatory = $true)]
@@ -49,6 +50,7 @@ if ($MirrorPosters) {
     Write-Host "Step 3/3: Mirroring posters into PocketBase media..."
     python .\tools\recommendation_pipeline\mirror_movie_posters_to_pocketbase.py `
         --base-url $BaseUrl `
+        --public-base-url $PublicBaseUrl `
         --superuser-email $SuperuserEmail `
         --superuser-password $SuperuserPassword `
         --limit $Limit

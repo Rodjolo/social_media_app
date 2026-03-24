@@ -1,5 +1,6 @@
 import argparse
 import mimetypes
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -11,6 +12,14 @@ def parse_args():
         description="Mirror remote movie posters into PocketBase media storage.",
     )
     parser.add_argument("--base-url", required=True, help="PocketBase base URL.")
+    parser.add_argument(
+        "--public-base-url",
+        default=os.getenv("POCKETBASE_PUBLIC_URL", ""),
+        help=(
+            "Public PocketBase URL that the Flutter app can reach. "
+            "Defaults to --base-url when omitted."
+        ),
+    )
     parser.add_argument(
         "--superuser-email",
         required=True,
@@ -100,6 +109,14 @@ def build_file_url(base_url: str, record: dict, filename: str):
     )
 
 
+def extract_filename(file_field) -> str:
+    if isinstance(file_field, list):
+        return str(file_field[0]) if file_field else ""
+    if isinstance(file_field, str):
+        return file_field
+    return ""
+
+
 def infer_filename(movie_id: str, source_url: str, content_type: str | None):
     parsed = urlparse(source_url)
     extension = Path(parsed.path).suffix
@@ -164,8 +181,15 @@ def is_local_pocketbase_url(base_url: str, url: str):
     return url.startswith(normalized_base) and "/api/files/" in url
 
 
+def has_plausible_filename(url: str) -> bool:
+    parsed = urlparse(url)
+    filename = Path(parsed.path).name
+    return len(filename) > 4 and "." in filename
+
+
 def main():
     args = parse_args()
+    public_base_url = (args.public_base_url or args.base_url).rstrip("/")
     headers = auth_headers(
         args.base_url,
         args.superuser_email,
@@ -178,16 +202,43 @@ def main():
     for movie in iter_movies(args.base_url, headers, args.limit):
         poster_url = str(movie.get("posterUrl") or "").strip()
         movie_id = str(movie.get("movieId") or "")
-
-        if not poster_url or not movie_id:
-            skipped += 1
-            continue
-
-        if is_local_pocketbase_url(args.base_url, poster_url):
-            skipped += 1
-            continue
-
         existing_media = find_existing_media(args.base_url, headers, movie_id)
+
+        if not movie_id:
+            skipped += 1
+            continue
+
+        if existing_media:
+            filename = extract_filename(existing_media.get("file"))
+            if filename:
+                desired_poster_url = build_file_url(
+                    public_base_url,
+                    existing_media,
+                    filename,
+                )
+                if poster_url != desired_poster_url:
+                    update_movie_poster_url(
+                        args.base_url,
+                        headers,
+                        movie["id"],
+                        desired_poster_url,
+                    )
+                    mirrored += 1
+                else:
+                    skipped += 1
+                continue
+
+        if not poster_url:
+            skipped += 1
+            continue
+
+        if (
+            is_local_pocketbase_url(public_base_url, poster_url)
+            and has_plausible_filename(poster_url)
+        ):
+            skipped += 1
+            continue
+
         try:
             media_record = upload_media_record(
                 args.base_url,
@@ -196,13 +247,12 @@ def main():
                 poster_url,
                 existing_media,
             )
-            filenames = media_record.get("file") or []
-            filename = filenames[0] if filenames else ""
+            filename = extract_filename(media_record.get("file"))
             if not filename:
                 skipped += 1
                 continue
 
-            local_poster_url = build_file_url(args.base_url, media_record, filename)
+            local_poster_url = build_file_url(public_base_url, media_record, filename)
             update_movie_poster_url(
                 args.base_url,
                 headers,
