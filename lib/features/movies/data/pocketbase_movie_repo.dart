@@ -169,14 +169,13 @@ class PocketBaseMovieRepo implements MovieRepo {
     PocketBase pb, {
     int limit = 500,
   }) async {
-    final result = await pb.collection(BackendConfig.moviesCollection).getList(
-          page: 1,
-          perPage: limit,
+    final result = await pb.collection(BackendConfig.moviesCollection).getFullList(
           sort: '-popularity',
+          batch: limit,
         );
 
     final moviesByMovieId = <String, Movie>{};
-    for (final record in result.items) {
+    for (final record in result) {
       final movie = Movie.fromJson({
         'id': record.data['movieId']?.toString() ?? record.id,
         ...record.toJson(),
