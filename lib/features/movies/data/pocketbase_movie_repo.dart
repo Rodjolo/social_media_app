@@ -97,6 +97,7 @@ class PocketBaseMovieRepo implements MovieRepo {
   }) async {
     try {
       final pb = await PocketBaseClient.getInstance();
+      final moviesByMovieId = await _fetchMoviesByMovieId(pb, limit: 500);
       final result =
           await pb.collection(BackendConfig.recommendationsCollection).getList(
                 page: 1,
@@ -107,14 +108,35 @@ class PocketBaseMovieRepo implements MovieRepo {
 
       return result.items.map((record) {
         final data = {'id': record.id, ...record.toJson()};
+        final movieId = data['movieId']?.toString() ?? '';
+        final fallbackMovie = moviesByMovieId[movieId];
         final movie = Movie(
-          id: data['movieId']?.toString() ?? '',
-          title: data['title']?.toString() ?? 'Unknown movie',
-          genres: List<String>.from(data['genres'] ?? const []),
-          posterUrl: _normalizePosterUrl(data['posterUrl']),
-          overview: data['overview']?.toString() ?? '',
-          year: (data['year'] as num?)?.toInt() ?? 0,
-          popularity: (data['popularity'] as num?)?.toDouble() ?? 0,
+          id: movieId,
+          title: _pickString(
+            primary: data['title'],
+            fallback: fallbackMovie?.title,
+            defaultValue: 'Unknown movie',
+          ),
+          genres: _pickGenres(
+            primary: data['genres'],
+            fallback: fallbackMovie?.genres,
+          ),
+          posterUrl: _pickPosterUrl(
+            primary: data['posterUrl'],
+            fallback: fallbackMovie?.posterUrl,
+          ),
+          overview: _pickString(
+            primary: data['overview'],
+            fallback: fallbackMovie?.overview,
+          ),
+          year: _pickInt(
+            primary: data['year'],
+            fallback: fallbackMovie?.year,
+          ),
+          popularity: _pickDouble(
+            primary: data['popularity'],
+            fallback: fallbackMovie?.popularity,
+          ),
         );
 
         return RecommendationItem.fromJson(json: data, movie: movie);
@@ -143,6 +165,28 @@ class PocketBaseMovieRepo implements MovieRepo {
     return message?.isNotEmpty == true ? '$fallback: $message' : fallback;
   }
 
+  Future<Map<String, Movie>> _fetchMoviesByMovieId(
+    PocketBase pb, {
+    int limit = 500,
+  }) async {
+    final result = await pb.collection(BackendConfig.moviesCollection).getList(
+          page: 1,
+          perPage: limit,
+          sort: '-popularity',
+        );
+
+    final moviesByMovieId = <String, Movie>{};
+    for (final record in result.items) {
+      final movie = Movie.fromJson({
+        'id': record.data['movieId']?.toString() ?? record.id,
+        ...record.toJson(),
+        'posterUrl': _normalizePosterUrl(record.data['posterUrl']),
+      });
+      moviesByMovieId[movie.id] = movie;
+    }
+    return moviesByMovieId;
+  }
+
   String _normalizePosterUrl(dynamic rawValue) {
     final value = rawValue?.toString().trim() ?? '';
     if (value.isEmpty) {
@@ -152,5 +196,64 @@ class PocketBaseMovieRepo implements MovieRepo {
     return value
         .replaceFirst('http://127.0.0.1:8090', BackendConfig.pocketBaseUrl)
         .replaceFirst('http://localhost:8090', BackendConfig.pocketBaseUrl);
+  }
+
+  String _pickString({
+    required dynamic primary,
+    required String? fallback,
+    String defaultValue = '',
+  }) {
+    final primaryValue = primary?.toString().trim() ?? '';
+    if (primaryValue.isNotEmpty) {
+      return primaryValue;
+    }
+    final fallbackValue = fallback?.trim() ?? '';
+    if (fallbackValue.isNotEmpty) {
+      return fallbackValue;
+    }
+    return defaultValue;
+  }
+
+  List<String> _pickGenres({
+    required dynamic primary,
+    required List<String>? fallback,
+  }) {
+    if (primary is List && primary.isNotEmpty) {
+      return primary.map((item) => item.toString()).toList();
+    }
+    return fallback ?? const [];
+  }
+
+  String _pickPosterUrl({
+    required dynamic primary,
+    required String? fallback,
+  }) {
+    final normalizedPrimary = _normalizePosterUrl(primary);
+    if (normalizedPrimary.isNotEmpty) {
+      return normalizedPrimary;
+    }
+    return fallback ?? '';
+  }
+
+  int _pickInt({
+    required dynamic primary,
+    required int? fallback,
+  }) {
+    final primaryValue = (primary as num?)?.toInt() ?? 0;
+    if (primaryValue > 0) {
+      return primaryValue;
+    }
+    return fallback ?? 0;
+  }
+
+  double _pickDouble({
+    required dynamic primary,
+    required double? fallback,
+  }) {
+    final primaryValue = (primary as num?)?.toDouble() ?? 0;
+    if (primaryValue > 0) {
+      return primaryValue;
+    }
+    return fallback ?? 0;
   }
 }
