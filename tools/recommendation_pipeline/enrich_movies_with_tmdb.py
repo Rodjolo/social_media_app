@@ -51,6 +51,12 @@ def parse_args():
         default="en-US",
         help="TMDB response language, for example en-US or ru-RU.",
     )
+    parser.add_argument(
+        "--progress-every",
+        type=int,
+        default=25,
+        help="How often to print progress updates. Set 0 to disable.",
+    )
     return parser.parse_args()
 
 
@@ -171,8 +177,11 @@ def main():
     records = []
     enriched_count = 0
     missing_tmdb_count = 0
+    request_error_count = 0
+    started_at = time.perf_counter()
+    total_records = len(source_records)
 
-    for record in source_records:
+    for index, record in enumerate(source_records, start=1):
         movie_id = record["movieId"]
         title = record["title"]
         tmdb_id = links_map.get(movie_id)
@@ -183,6 +192,7 @@ def main():
         except requests.RequestException as error:
             print(f"Skipping movieId={movie_id}: TMDB request failed: {error}")
             tmdb_data = None
+            request_error_count += 1
 
         poster_path = tmdb_data.get("poster_path") if tmdb_data else None
         overview = (
@@ -224,15 +234,29 @@ def main():
             }
         )
 
+        if args.progress_every > 0 and (
+            index == 1
+            or index % args.progress_every == 0
+            or index == total_records
+        ):
+            elapsed_seconds = time.perf_counter() - started_at
+            print(
+                f"[{index}/{total_records}] processed "
+                f"(matched: {enriched_count}, fallback: {missing_tmdb_count}, "
+                f"request errors: {request_error_count}, elapsed: {elapsed_seconds:.1f}s)"
+            )
+
         time.sleep(args.delay_ms / 1000)
 
     output_file.write_text(
         json.dumps(records, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    elapsed_seconds = time.perf_counter() - started_at
     print(
         f"Saved {len(records)} enriched movies to {output_file} "
-        f"(TMDB matched: {enriched_count}, fallback-only: {missing_tmdb_count})"
+        f"(TMDB matched: {enriched_count}, fallback-only: {missing_tmdb_count}, "
+        f"request errors: {request_error_count}, elapsed: {elapsed_seconds:.1f}s)"
     )
 
 

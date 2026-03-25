@@ -19,8 +19,9 @@ if ([string]::IsNullOrWhiteSpace($TmdbToken)) {
 }
 
 $ErrorActionPreference = "Stop"
+$totalSteps = if ($MirrorPosters) { 3 } else { 2 }
 
-Write-Host "Step 1/2: Enriching movies with TMDB metadata..."
+Write-Host "Step 1/${totalSteps}: Enriching movies with TMDB metadata..."
 $enrichArgs = @(
     ".\tools\recommendation_pipeline\enrich_movies_with_tmdb.py",
     "--dataset-dir", $DatasetDir,
@@ -40,7 +41,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "TMDB enrichment failed."
 }
 
-Write-Host "Step 2/2: Importing enriched movies into PocketBase..."
+Write-Host "Step 2/${totalSteps}: Importing enriched movies into PocketBase..."
 python .\tools\recommendation_pipeline\pocketbase_import_json.py `
     --base-url $BaseUrl `
     --superuser-email $SuperuserEmail `
@@ -54,7 +55,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if ($MirrorPosters) {
-    Write-Host "Step 3/3: Mirroring posters into PocketBase media..."
+    Write-Host "Step 3/${totalSteps}: Mirroring posters into PocketBase media..."
     python .\tools\recommendation_pipeline\mirror_movie_posters_to_pocketbase.py `
         --base-url $BaseUrl `
         --public-base-url $PublicBaseUrl `
