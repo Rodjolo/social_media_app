@@ -7,7 +7,7 @@ param(
     [string]$SuperuserPassword,
     [string]$TmdbToken = $env:TMDB_BEARER_TOKEN,
     [string]$DatasetDir = ".\assets\db\ml-latest-small",
-    [string]$InputFile = ".\assets\db\movies_seed.json",
+    [string]$InputFile = "",
     [string]$OutputFile = ".\assets\db\movies_enriched.json",
     [int]$Limit = 200,
     [string]$Language = "ru-RU",
@@ -21,13 +21,20 @@ if ([string]::IsNullOrWhiteSpace($TmdbToken)) {
 $ErrorActionPreference = "Stop"
 
 Write-Host "Step 1/2: Enriching movies with TMDB metadata..."
-python .\tools\recommendation_pipeline\enrich_movies_with_tmdb.py `
-    --dataset-dir $DatasetDir `
-    --input-file $InputFile `
-    --tmdb-token $TmdbToken `
-    --output-file $OutputFile `
-    --limit $Limit `
-    --language $Language
+$enrichArgs = @(
+    ".\tools\recommendation_pipeline\enrich_movies_with_tmdb.py",
+    "--dataset-dir", $DatasetDir,
+    "--tmdb-token", $TmdbToken,
+    "--output-file", $OutputFile,
+    "--limit", $Limit,
+    "--language", $Language
+)
+
+if (-not [string]::IsNullOrWhiteSpace($InputFile)) {
+    $enrichArgs += @("--input-file", $InputFile)
+}
+
+python @enrichArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "TMDB enrichment failed."
