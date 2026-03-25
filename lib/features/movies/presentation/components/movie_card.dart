@@ -93,11 +93,20 @@ class MovieCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 ...List.generate(
                   5,
                   (index) => IconButton(
+                    constraints: const BoxConstraints.tightFor(
+                      width: 36,
+                      height: 36,
+                    ),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
                     icon: Icon(
                       index < currentRating ? Icons.star : Icons.star_border,
                       color: Colors.amber,
@@ -105,9 +114,12 @@ class MovieCard extends StatelessWidget {
                     onPressed: () => onRatingSelected(index + 1.0),
                   ),
                 ),
-                const Spacer(),
                 TextButton.icon(
                   onPressed: onLikePressed,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
                   icon: Icon(
                     isLiked ? Icons.favorite : Icons.favorite_border,
                     color: isLiked ? Colors.red : null,
