@@ -27,7 +27,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
   Widget build(BuildContext context) {
     return ConstrainedScaffold(
       appBar: AppBar(
-        title: const Text('Recommendations'),
+        title: const Text('Рекомендации'),
         actions: [
           IconButton(
             onPressed: () => movieCubit.loadRecommendationsScreen(uid),
@@ -54,7 +54,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                 padding: EdgeInsets.all(16),
                 child: Center(
                   child: Text(
-                    'Recommendations are empty. Run the Python pipeline and write results to recommendations/{uid}/items.',
+                    'Рекомендации пока пусты. Запустите Python pipeline и сохраните результаты в коллекцию recommendations.',
                   ),
                 ),
               );

@@ -115,7 +115,7 @@ def build_recommendations(
                 "uid": app_user_id,
                 "movieId": str(movie_id),
                 "score": round(float(score), 4),
-                "reason": "Recommended from similar rating patterns in MovieLens.",
+                "reason": "Рекомендовано на основе похожих оценок пользователей в MovieLens.",
                 "generatedAt": datetime.now(tz=timezone.utc).isoformat(),
                 "title": clean_title(title),
                 "genres": split_genres(movie.get("genres", "")),

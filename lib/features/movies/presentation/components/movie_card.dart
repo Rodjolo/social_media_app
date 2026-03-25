@@ -62,7 +62,7 @@ class MovieCard extends StatelessWidget {
                       ),
                       if (movie.year > 0) ...[
                         const SizedBox(height: 4),
-                        Text('Year: ${movie.year}'),
+                        Text('Год: ${movie.year}'),
                       ],
                       if (movie.genres.isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -112,7 +112,7 @@ class MovieCard extends StatelessWidget {
                     isLiked ? Icons.favorite : Icons.favorite_border,
                     color: isLiked ? Colors.red : null,
                   ),
-                  label: Text(isLiked ? 'Liked' : 'Like'),
+                  label: Text(isLiked ? 'В избранном' : 'В избранное'),
                 ),
               ],
             ),

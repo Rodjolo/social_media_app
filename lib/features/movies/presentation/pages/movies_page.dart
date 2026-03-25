@@ -27,7 +27,7 @@ class _MoviesPageState extends State<MoviesPage> {
   Widget build(BuildContext context) {
     return ConstrainedScaffold(
       appBar: AppBar(
-        title: const Text('Movies'),
+        title: const Text('Фильмы'),
       ),
       body: BlocConsumer<MovieCubit, MovieState>(
         listener: (context, state) {
@@ -46,7 +46,7 @@ class _MoviesPageState extends State<MoviesPage> {
             if (state.movies.isEmpty) {
               return const Center(
                 child: Text(
-                    'No movies found. Add documents to movies collection.'),
+                    'Фильмы не найдены. Загрузите данные в коллекцию movies.'),
               );
             }
 
@@ -57,7 +57,7 @@ class _MoviesPageState extends State<MoviesPage> {
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
-                      'Rate at least 15 movies to build your recommendation profile.',
+                      'Оцените как минимум 15 фильмов, чтобы сформировать профиль предпочтений.',
                     ),
                   ),
                   ...state.movies.map(

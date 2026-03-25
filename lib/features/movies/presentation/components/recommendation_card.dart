@@ -10,6 +10,7 @@ class RecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final posterUrl = item.movie.posterUrl.trim();
+    final localizedReason = _localizeReason(item.reason);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -46,10 +47,10 @@ class RecommendationCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 6),
-                  Text('Score: ${item.score.toStringAsFixed(2)}'),
-                  if (item.reason.isNotEmpty) ...[
+                  Text('Оценка рекомендации: ${item.score.toStringAsFixed(2)}'),
+                  if (localizedReason.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(item.reason),
+                    Text(localizedReason),
                   ],
                   if (item.movie.genres.isNotEmpty) ...[
                     const SizedBox(height: 10),
@@ -76,6 +77,14 @@ class RecommendationCard extends StatelessWidget {
 bool _hasUsablePosterUrl(String value) {
   final uri = Uri.tryParse(value);
   return uri != null && uri.hasScheme && uri.host.isNotEmpty;
+}
+
+String _localizeReason(String value) {
+  const englishDefault = 'Recommended from similar rating patterns in MovieLens.';
+  if (value.trim() == englishDefault) {
+    return 'Рекомендовано на основе похожих оценок пользователей в MovieLens.';
+  }
+  return value;
 }
 
 class _FallbackPoster extends StatelessWidget {
