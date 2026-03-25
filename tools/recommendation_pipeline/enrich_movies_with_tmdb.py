@@ -153,6 +153,21 @@ def extract_tmdb_year(release_date: str, fallback_year: int):
     return fallback_year
 
 
+def pick_localized_title(tmdb_data: dict | None, fallback_title: str):
+    if not tmdb_data:
+        return clean_title(fallback_title)
+
+    localized_title = str(tmdb_data.get("title", "")).strip()
+    if localized_title:
+        return localized_title
+
+    original_title = str(tmdb_data.get("original_title", "")).strip()
+    if original_title:
+        return clean_title(original_title)
+
+    return clean_title(fallback_title)
+
+
 def main():
     args = parse_args()
     dataset_dir = Path(args.dataset_dir)
@@ -212,6 +227,7 @@ def main():
         )
         release_date = tmdb_data.get("release_date", "") if tmdb_data else ""
         year = extract_tmdb_year(release_date, record["year"])
+        localized_title = pick_localized_title(tmdb_data, title)
 
         if tmdb_data:
             enriched_count += 1
@@ -221,7 +237,7 @@ def main():
         records.append(
             {
                 "movieId": movie_id,
-                "title": clean_title(title),
+                "title": localized_title,
                 "genres": genres,
                 "posterUrl": (
                     f"{poster_base_url}{poster_path}"
