@@ -80,10 +80,15 @@ class PocketBaseAuthRepo implements AuthRepo {
     try {
       if (pb.authStore.isValid) {
         await pb.collection(BackendConfig.usersCollection).authRefresh();
+        return _mapRecordToUser(pb.authStore.record);
       }
-    } catch (_) {}
+    } catch (_) {
+      pb.authStore.clear();
+      return null;
+    }
 
-    return _mapRecordToUser(pb.authStore.record);
+    pb.authStore.clear();
+    return null;
   }
 
   AppUser? _mapRecordToUser(RecordModel? record) {
