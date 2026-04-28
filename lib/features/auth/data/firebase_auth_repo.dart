@@ -23,6 +23,9 @@ class FirebaseAuthRepo implements AuthRepo {
         uid: userCredential.user!.uid,
         email: email,
         name: userDoc['name'],
+        isAdmin: userDoc.data() is Map<String, dynamic>
+            ? ((userDoc.data() as Map<String, dynamic>)['isAdmin'] == true)
+            : false,
       );
 
       return user;
@@ -43,6 +46,7 @@ class FirebaseAuthRepo implements AuthRepo {
         uid: userCredential.user!.uid,
         email: email,
         name: name,
+        isAdmin: false,
       );
 
       //save user data in firestore
@@ -54,6 +58,7 @@ class FirebaseAuthRepo implements AuthRepo {
         'following': <String>[],
         'favoriteGenres': <String>[],
         'movieOnboardingCompleted': false,
+        'isAdmin': false,
       });
 
       return user;
@@ -88,6 +93,9 @@ class FirebaseAuthRepo implements AuthRepo {
       uid: firebaseUser.uid,
       email: firebaseUser.email!,
       name: userDoc['name'],
+      isAdmin: userDoc.data() is Map<String, dynamic>
+          ? ((userDoc.data() as Map<String, dynamic>)['isAdmin'] == true)
+          : false,
     );
   }
 }

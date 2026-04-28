@@ -44,6 +44,7 @@ class PocketBaseAuthRepo implements AuthRepo {
           'following': <String>[],
           'favoriteGenres': <String>[],
           'movieOnboardingCompleted': false,
+          'isAdmin': false,
         },
       );
 
@@ -100,6 +101,7 @@ class PocketBaseAuthRepo implements AuthRepo {
       uid: record.id,
       email: record.getStringValue('email'),
       name: record.getStringValue('name'),
+      isAdmin: record.getBoolValue('isAdmin'),
     );
   }
 }

@@ -16,12 +16,22 @@ class RecommendationsPage extends StatefulWidget {
 
 class _RecommendationsPageState extends State<RecommendationsPage> {
   late final MovieCubit movieCubit = context.read<MovieCubit>();
-  late final String uid = context.read<AuthCubit>().currentUser!.uid;
+  late final authUser = context.read<AuthCubit>().currentUser!;
+  late final String uid = authUser.uid;
+  late final bool isAdmin = authUser.isAdmin;
 
   @override
   void initState() {
     super.initState();
     movieCubit.loadRecommendationsScreen(uid);
+  }
+
+  void _openAdminPanel() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RecommendationAdminPage(uid: uid),
+      ),
+    );
   }
 
   @override
@@ -30,15 +40,12 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
       appBar: AppBar(
         title: const Text('Рекомендации'),
         actions: [
-          IconButton(
-            tooltip: 'Панель рекомендаций',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => RecommendationAdminPage(uid: uid),
-              ),
+          if (isAdmin)
+            IconButton(
+              tooltip: 'Панель пересчета',
+              onPressed: _openAdminPanel,
+              icon: const Icon(Icons.tune),
             ),
-            icon: const Icon(Icons.tune),
-          ),
           IconButton(
             tooltip: 'Обновить',
             onPressed: () => movieCubit.loadRecommendationsScreen(uid),
@@ -59,76 +66,71 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (state is MovieLoaded) {
-            return RefreshIndicator(
-              onRefresh: () => movieCubit.loadRecommendationsScreen(uid),
-              child: ListView(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Подборка рекомендаций',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              state.recommendations.isEmpty
-                                  ? 'Рекомендации пока не рассчитаны.'
-                                  : 'Найдено рекомендаций: ${state.recommendations.length}',
-                            ),
-                            const SizedBox(height: 12),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: OutlinedButton.icon(
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        RecommendationAdminPage(uid: uid),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.terminal),
-                                label:
-                                    const Text('Открыть панель пересчета'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (state.recommendations.isEmpty)
-                    const Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text(
-                            'Сначала оцените фильмы, затем выполните пересчет рекомендаций через PowerShell-скрипт.',
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    ...state.recommendations.map(
-                      (item) => RecommendationCard(item: item),
-                    ),
-                ],
-              ),
-            );
-          }
-
           if (state is MovieError) {
             return Center(child: Text(state.message));
           }
 
-          return const SizedBox();
+          if (state is! MovieLoaded) {
+            return const SizedBox();
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => movieCubit.loadRecommendationsScreen(uid),
+            child: ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Подборка рекомендаций',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            state.recommendations.isEmpty
+                                ? 'Рекомендации пока не рассчитаны.'
+                                : 'Найдено рекомендаций: ${state.recommendations.length}',
+                          ),
+                          if (isAdmin) ...[
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: OutlinedButton.icon(
+                                onPressed: _openAdminPanel,
+                                icon: const Icon(Icons.terminal),
+                                label: const Text('Открыть панель пересчета'),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (state.recommendations.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text(
+                          'Сначала оцените фильмы, затем выполните пересчет рекомендаций через PowerShell-скрипт.',
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ...state.recommendations.map(
+                    (item) => RecommendationCard(item: item),
+                  ),
+              ],
+            ),
+          );
         },
       ),
     );

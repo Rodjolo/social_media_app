@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:socail_media_app/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:socail_media_app/features/movies/domain/entities/recommendation_item.dart';
 import 'package:socail_media_app/features/movies/presentation/cubits/movie_cubit.dart';
 import 'package:socail_media_app/features/movies/presentation/cubits/movie_states.dart';
@@ -23,10 +24,15 @@ class RecommendationAdminPage extends StatefulWidget {
 
 class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
   late final MovieCubit movieCubit = context.read<MovieCubit>();
+  late final bool isAdmin = context.read<AuthCubit>().currentUser?.isAdmin ?? false;
 
   @override
   void initState() {
     super.initState();
+    if (!isAdmin) {
+      return;
+    }
+
     final state = movieCubit.state;
     if (state is! MovieLoaded) {
       movieCubit.loadRecommendationsScreen(widget.uid);
@@ -39,126 +45,150 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
       appBar: AppBar(
         title: const Text('Панель рекомендаций'),
         actions: [
-          IconButton(
-            tooltip: 'Обновить',
-            onPressed: () => movieCubit.loadRecommendationsScreen(widget.uid),
-            icon: const Icon(Icons.refresh),
-          ),
+          if (isAdmin)
+            IconButton(
+              tooltip: 'Обновить',
+              onPressed: () => movieCubit.loadRecommendationsScreen(widget.uid),
+              icon: const Icon(Icons.refresh),
+            ),
         ],
       ),
-      body: BlocBuilder<MovieCubit, MovieState>(
-        builder: (context, state) {
-          if (state is MovieLoading || state is MovieInitial) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: isAdmin ? _buildAdminBody() : _buildAccessDenied(),
+    );
+  }
 
-          if (state is MovieError) {
-            return Center(child: Text(state.message));
-          }
+  Widget _buildAdminBody() {
+    return BlocBuilder<MovieCubit, MovieState>(
+      builder: (context, state) {
+        if (state is MovieLoading || state is MovieInitial) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          if (state is! MovieLoaded) {
-            return const SizedBox();
-          }
+        if (state is MovieError) {
+          return Center(child: Text(state.message));
+        }
 
-          final ratingCount = state.ratingsByMovieId.length;
-          final latestGeneratedAt = _latestGeneratedAt(state.recommendations);
-          final command = _rebuildCommand(widget.uid);
+        if (state is! MovieLoaded) {
+          return const SizedBox();
+        }
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _StatusCard(
-                title: 'Статус данных',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('UID пользователя: ${widget.uid}'),
-                    const SizedBox(height: 8),
-                    Text('Оценено фильмов: $ratingCount'),
-                    const SizedBox(height: 8),
-                    Text(
-                      state.recommendations.isEmpty
-                          ? 'Рекомендации еще не рассчитаны.'
-                          : 'Количество рекомендаций: ${state.recommendations.length}',
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      latestGeneratedAt == null
-                          ? 'Последний пересчет: нет данных'
-                          : 'Последний пересчет: ${_formatDateTime(latestGeneratedAt)}',
-                    ),
-                  ],
-                ),
+        final ratingCount = state.ratingsByMovieId.length;
+        final latestGeneratedAt = _latestGeneratedAt(state.recommendations);
+        final command = _rebuildCommand(widget.uid);
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _StatusCard(
+              title: 'Статус данных',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('UID пользователя: ${widget.uid}'),
+                  const SizedBox(height: 8),
+                  Text('Оценено фильмов: $ratingCount'),
+                  const SizedBox(height: 8),
+                  Text(
+                    state.recommendations.isEmpty
+                        ? 'Рекомендации еще не рассчитаны.'
+                        : 'Количество рекомендаций: ${state.recommendations.length}',
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    latestGeneratedAt == null
+                        ? 'Последний пересчет: нет данных'
+                        : 'Последний пересчет: ${_formatDateTime(latestGeneratedAt)}',
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              _StatusCard(
-                title: 'Готовность к пересчету',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _ThresholdRow(
-                      label: 'Минимум для старта',
-                      current: ratingCount,
-                      target: _minimumRatingsForStart,
-                    ),
-                    const SizedBox(height: 8),
-                    _ThresholdRow(
-                      label: 'Рекомендуемый минимум',
-                      current: ratingCount,
-                      target: _recommendedRatingsForQuality,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(_buildRecommendationHint(ratingCount)),
-                  ],
-                ),
+            ),
+            const SizedBox(height: 12),
+            _StatusCard(
+              title: 'Готовность к пересчету',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ThresholdRow(
+                    label: 'Минимум для старта',
+                    current: ratingCount,
+                    target: _minimumRatingsForStart,
+                  ),
+                  const SizedBox(height: 8),
+                  _ThresholdRow(
+                    label: 'Рекомендуемый минимум',
+                    current: ratingCount,
+                    target: _recommendedRatingsForQuality,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(_buildRecommendationHint(ratingCount)),
+                ],
               ),
-              const SizedBox(height: 12),
-              _StatusCard(
-                title: 'Команда пересчета',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Откройте PowerShell в корне проекта и выполните команду ниже.',
-                    ),
-                    const SizedBox(height: 12),
-                    SelectableText(
-                      command,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontFamily: 'monospace',
-                          ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: () => _copyAndNotify(
-                            context,
-                            text: command,
-                            message: 'Команда скопирована',
-                          ),
-                          icon: const Icon(Icons.copy),
-                          label: const Text('Скопировать команду'),
+            ),
+            const SizedBox(height: 12),
+            _StatusCard(
+              title: 'Команда пересчета',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Откройте PowerShell в корне проекта и выполните команду ниже.',
+                  ),
+                  const SizedBox(height: 12),
+                  SelectableText(
+                    command,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'monospace',
                         ),
-                        OutlinedButton.icon(
-                          onPressed: () => _copyAndNotify(
-                            context,
-                            text: widget.uid,
-                            message: 'UID скопирован',
-                          ),
-                          icon: const Icon(Icons.badge_outlined),
-                          label: const Text('Скопировать UID'),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => _copyAndNotify(
+                          context,
+                          text: command,
+                          message: 'Команда скопирована',
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                        icon: const Icon(Icons.copy),
+                        label: const Text('Скопировать команду'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _copyAndNotify(
+                          context,
+                          text: widget.uid,
+                          message: 'UID скопирован',
+                        ),
+                        icon: const Icon(Icons.badge_outlined),
+                        label: const Text('Скопировать UID'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAccessDenied() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.lock_outline, size: 48),
+            SizedBox(height: 12),
+            Text(
+              'Эта панель доступна только администратору.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

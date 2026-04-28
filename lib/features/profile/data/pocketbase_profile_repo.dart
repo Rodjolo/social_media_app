@@ -87,6 +87,7 @@ class PocketBaseProfileRepo implements ProfileRepo {
       uid: record.id,
       email: record.getStringValue('email'),
       name: record.getStringValue('name'),
+      isAdmin: record.getBoolValue('isAdmin'),
       bio: record.getStringValue('bio'),
       profileImageUrl: profileImageUrl,
       followers: List<String>.from(record.get<List<dynamic>>('followers')),

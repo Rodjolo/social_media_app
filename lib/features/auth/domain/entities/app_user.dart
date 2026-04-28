@@ -2,11 +2,13 @@ class AppUser {
   final String uid;
   final String email;
   final String name;
+  final bool isAdmin;
 
   AppUser({
     required this.uid,
     required this.email,
     required this.name,
+    this.isAdmin = false,
   });
 
   // convert app usert to json
@@ -15,6 +17,7 @@ class AppUser {
       'uid': uid,
       'email': email,
       'name': name,
+      'isAdmin': isAdmin,
     };
   }
 
@@ -24,6 +27,7 @@ class AppUser {
       uid: jsonUser['uid'],
       email: jsonUser['email'],
       name: jsonUser['name'],
+      isAdmin: jsonUser['isAdmin'] == true,
     );
   }
 }
