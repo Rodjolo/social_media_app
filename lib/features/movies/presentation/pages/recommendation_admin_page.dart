@@ -6,6 +6,9 @@ import 'package:socail_media_app/features/movies/presentation/cubits/movie_cubit
 import 'package:socail_media_app/features/movies/presentation/cubits/movie_states.dart';
 import 'package:socail_media_app/responsive/constrained_scaffold.dart';
 
+const int _minimumRatingsForStart = 5;
+const int _recommendedRatingsForQuality = 15;
+
 class RecommendationAdminPage extends StatefulWidget {
   final String uid;
 
@@ -19,9 +22,6 @@ class RecommendationAdminPage extends StatefulWidget {
 }
 
 class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
-  static const int _minimumRatingsForStart = 5;
-  static const int _recommendedRatingsForQuality = 15;
-
   late final MovieCubit movieCubit = context.read<MovieCubit>();
 
   @override
@@ -108,9 +108,7 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                       target: _recommendedRatingsForQuality,
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      _buildRecommendationHint(ratingCount),
-                    ),
+                    Text(_buildRecommendationHint(ratingCount)),
                   ],
                 ),
               ),

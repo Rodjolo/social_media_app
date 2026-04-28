@@ -93,7 +93,8 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                                   ),
                                 ),
                                 icon: const Icon(Icons.terminal),
-                                label: const Text('Открыть панель пересчета'),
+                                label:
+                                    const Text('Открыть панель пересчета'),
                               ),
                             ),
                           ],
@@ -103,7 +104,8 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                   ),
                   if (state.recommendations.isEmpty)
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Card(
                         child: Padding(
                           padding: EdgeInsets.all(16),
