@@ -31,3 +31,40 @@ class RecommendationItem {
     );
   }
 }
+
+double averageRecommendationScore(List<RecommendationItem> items) {
+  if (items.isEmpty) {
+    return 0;
+  }
+
+  final total = items.fold<double>(0, (sum, item) => sum + item.score);
+  return total / items.length;
+}
+
+List<String> topRecommendationGenres(
+  List<RecommendationItem> items, {
+  int limit = 3,
+}) {
+  final counts = <String, int>{};
+
+  for (final item in items) {
+    for (final genre in item.movie.genres) {
+      final normalized = genre.trim();
+      if (normalized.isEmpty) {
+        continue;
+      }
+      counts.update(normalized, (value) => value + 1, ifAbsent: () => 1);
+    }
+  }
+
+  final sorted = counts.entries.toList()
+    ..sort((a, b) {
+      final countCompare = b.value.compareTo(a.value);
+      if (countCompare != 0) {
+        return countCompare;
+      }
+      return a.key.compareTo(b.key);
+    });
+
+  return sorted.take(limit).map((entry) => entry.key).toList();
+}

@@ -21,7 +21,9 @@ if (-not (Test-Path $WorkingDir)) {
 
 $safeUserId = $UserId -replace '[^a-zA-Z0-9_-]', '_'
 $ratingsFile = Join-Path $WorkingDir "user_ratings_${safeUserId}.json"
+$previousRecommendationsFile = Join-Path $WorkingDir "recommendations_${safeUserId}_previous.json"
 $recommendationsFile = Join-Path $WorkingDir "recommendations_${safeUserId}.json"
+$comparisonReportFile = Join-Path $WorkingDir "recommendation_report_${safeUserId}.json"
 
 Write-Host "Step 1/4: Exporting user ratings from PocketBase..."
 python .\tools\recommendation_pipeline\pocketbase_export_ratings.py `
@@ -48,6 +50,10 @@ if ($ratingCount -lt $MinimumRatings) {
 }
 
 Write-Host "Step 2/4: Computing recommendations from MovieLens..."
+if (Test-Path $recommendationsFile) {
+    Copy-Item -Path $recommendationsFile -Destination $previousRecommendationsFile -Force
+}
+
 python .\tools\recommendation_pipeline\movielens_recommender.py `
     --dataset-dir $DatasetDir `
     --user-id $UserId `
@@ -57,6 +63,22 @@ python .\tools\recommendation_pipeline\movielens_recommender.py `
 
 if ($LASTEXITCODE -ne 0) {
     throw "Recommendation generation failed."
+}
+
+if (Test-Path $previousRecommendationsFile) {
+    python .\tools\recommendation_pipeline\compare_recommendation_runs.py `
+        --previous-file $previousRecommendationsFile `
+        --current-file $recommendationsFile `
+        --output-file $comparisonReportFile
+
+    if ($LASTEXITCODE -eq 0 -and (Test-Path $comparisonReportFile)) {
+        $report = Get-Content -Path $comparisonReportFile -Raw | ConvertFrom-Json
+        Write-Host "Comparison summary:"
+        Write-Host "  Previous recommendations: $($report.previousCount)"
+        Write-Host "  Current recommendations:  $($report.currentCount)"
+        Write-Host "  Overlap ratio:            $($report.overlapRatio)"
+        Write-Host "  New movie ids:            $($report.newMovieIds -join ', ')"
+    }
 }
 
 Write-Host "Step 3/4: Importing recommendations into PocketBase..."

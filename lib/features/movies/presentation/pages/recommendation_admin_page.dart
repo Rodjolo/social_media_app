@@ -53,11 +53,11 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
             ),
         ],
       ),
-      body: isAdmin ? _buildAdminBody() : _buildAccessDenied(),
+      body: isAdmin ? _buildAdminBody(context) : _buildAccessDenied(),
     );
   }
 
-  Widget _buildAdminBody() {
+  Widget _buildAdminBody(BuildContext context) {
     return BlocBuilder<MovieCubit, MovieState>(
       builder: (context, state) {
         if (state is MovieLoading || state is MovieInitial) {
@@ -74,6 +74,8 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
 
         final ratingCount = state.ratingsByMovieId.length;
         final latestGeneratedAt = _latestGeneratedAt(state.recommendations);
+        final averageScore = averageRecommendationScore(state.recommendations);
+        final topGenres = topRecommendationGenres(state.recommendations);
         final command = _rebuildCommand(widget.uid);
 
         return ListView(
@@ -104,6 +106,26 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
             ),
             const SizedBox(height: 12),
             _StatusCard(
+              title: 'Краткая аналитика',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Средний score рекомендаций: ${averageScore.toStringAsFixed(2)}'),
+                  const SizedBox(height: 8),
+                  Text(
+                    topGenres.isEmpty
+                        ? 'Доминирующие жанры: пока нет данных'
+                        : 'Доминирующие жанры: ${topGenres.join(', ')}',
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Сила профиля: ${_profileStrengthLabel(ratingCount)}'),
+                  const SizedBox(height: 12),
+                  Text(_qualityAssessmentText(state.recommendations.length, ratingCount)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _StatusCard(
               title: 'Готовность к пересчету',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,12 +148,32 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
             ),
             const SizedBox(height: 12),
             _StatusCard(
-              title: 'Команда пересчета',
+              title: 'Как это работает',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Алгоритм использует item-based collaborative filtering: оценки пользователя объединяются с MovieLens, после чего система ищет фильмы с похожими паттернами оценок.',
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Pipeline: оценки пользователя -> PocketBase -> Python -> MovieLens -> recommendations -> Flutter.',
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'MovieLens выбран как открытый исследовательский датасет с большим количеством оценок и удобной структурой для построения рекомендаций.',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _StatusCard(
+              title: 'Запуск пересчета',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Откройте PowerShell в корне проекта и выполните команду ниже.',
+                    'На мобильном устройстве PowerShell-скрипт запустить нельзя, поэтому пересчет выполняется на компьютере в корне проекта одной командой.',
                   ),
                   const SizedBox(height: 12),
                   SelectableText(
@@ -152,7 +194,7 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                           message: 'Команда скопирована',
                         ),
                         icon: const Icon(Icons.copy),
-                        label: const Text('Скопировать команду'),
+                        label: const Text('Сформировать на компьютере'),
                       ),
                       OutlinedButton.icon(
                         onPressed: () => _copyAndNotify(
@@ -175,12 +217,12 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
   }
 
   Widget _buildAccessDenied() {
-    return Center(
+    return const Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.lock_outline, size: 48),
             SizedBox(height: 12),
             Text(
@@ -274,6 +316,26 @@ String _buildRecommendationHint(int ratingCount) {
   }
 
   return 'Оценок достаточно. Можно пересчитывать рекомендации, качество персонализации должно быть хорошим.';
+}
+
+String _profileStrengthLabel(int ratingCount) {
+  if (ratingCount < _minimumRatingsForStart) {
+    return 'слабый';
+  }
+  if (ratingCount < _recommendedRatingsForQuality) {
+    return 'средний';
+  }
+  return 'хороший';
+}
+
+String _qualityAssessmentText(int recommendationCount, int ratingCount) {
+  if (recommendationCount == 0) {
+    return 'Пока система не построила рекомендации. Для демонстрации диплома нужно сначала оценить фильмы и выполнить пересчет.';
+  }
+  if (ratingCount < _recommendedRatingsForQuality) {
+    return 'Подборка уже сформирована, но после дополнительных оценок топ рекомендаций, скорее всего, заметно изменится.';
+  }
+  return 'Подборка выглядит устойчивой: профиль пользователя уже достаточно заполнен, поэтому рекомендации можно считать качественными для демонстрации.';
 }
 
 String _formatDateTime(DateTime value) {

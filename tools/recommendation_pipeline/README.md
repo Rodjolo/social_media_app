@@ -214,6 +214,12 @@ This helper:
 - computes top-N recommendations from MovieLens
 - imports them into the `recommendations` collection
 - synchronizes titles, posters, genres, and overviews from `movies`
+- if a previous local recommendation file exists, builds a small comparison report
+  with overlap and changed movie ids
+
+The comparison report is saved into:
+
+- `assets/db/generated/recommendation_report_<uid>.json`
 
 ## Optional Firestore upload
 
@@ -235,3 +241,9 @@ python movielens_recommender.py ^
 - It uses item-based collaborative filtering from a user-item matrix.
 - For production, you would likely move recommendation generation to a backend job.
 - TMDB data usage should follow their attribution and API terms: [TMDB docs](https://developer.themoviedb.org/), [TMDB API reference](https://developer.themoviedb.org/reference/movie-details), [TMDB configuration endpoint](https://developer.themoviedb.org/reference/configuration-details)
+
+## Defense notes
+
+For a short diploma explanation, see:
+
+- `docs/diploma_recommendation_system.md`
