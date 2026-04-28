@@ -1,28 +1,28 @@
-# PocketBase Setup
+# Настройка PocketBase
 
-This project is being migrated from Firebase + Supabase to PocketBase.
+Этот проект переводится с Firebase + Supabase на PocketBase.
 
-## Local launch
+## Локальный запуск
 
-Recommended local server URL for Android emulator:
+Рекомендуемый URL локального сервера для эмулятора Android:
 
 - `http://10.0.2.2:8090`
 
-The Flutter app reads it from:
+Flutter-приложение читает его из:
 
 - `lib/config/backend_config.dart`
 
-You can override it at build time:
+Его можно переопределить во время сборки:
 
 ```bash
 flutter run --dart-define=POCKETBASE_URL=http://10.0.2.2:8090
 ```
 
-## Collections
+## Коллекции
 
 ### `users`
 
-Auth collection.
+Коллекция авторизации.
 
 Fields:
 
@@ -35,14 +35,14 @@ Fields:
 - `favoriteGenres` (`json`)
 - `movieOnboardingCompleted` (`bool`)
 
-PocketBase auth settings:
+Параметры аутентификации PocketBase:
 
 - collection type: `Auth`
 - enable email/password authentication
 - require unique email
 - allow authenticated users to manage their own record
 
-Recommended API rules for initial local development:
+Рекомендуемые правила API для начальной локальной разработки:
 
 - list rule: `@request.auth.id != ""`
 - view rule: `@request.auth.id != ""`
@@ -71,7 +71,7 @@ Fields:
 - `category` (`text`)
 - `file` (`file`, max 1)
 
-Recommended API rules for local development:
+Рекомендуемые правила API для локальной разработки:
 
 - `list`: `@request.auth.id != ""`
 - `view`: `@request.auth.id != ""`
@@ -91,7 +91,7 @@ Fields:
 - `year` (`number`)
 - `popularity` (`number`)
 
-Recommended API rules for local development:
+Рекомендуемые правила API для локальной разработки:
 
 - `list`: `@request.auth.id != ""`
 - `view`: `@request.auth.id != ""`
@@ -109,7 +109,7 @@ Fields:
 - `liked` (`bool`)
 - `timestamp` (`date`)
 
-Recommended API rules for local development:
+Рекомендуемые правила API для локальной разработки:
 
 - `list`: `@request.auth.id != "" && uid = @request.auth.id`
 - `view`: `@request.auth.id != "" && uid = @request.auth.id`
@@ -133,7 +133,7 @@ Fields:
 - `year` (`number`)
 - `popularity` (`number`)
 
-Recommended API rules for local development:
+Рекомендуемые правила API для локальной разработки:
 
 - `list`: `@request.auth.id != "" && uid = @request.auth.id`
 - `view`: `@request.auth.id != "" && uid = @request.auth.id`
@@ -141,12 +141,12 @@ Recommended API rules for local development:
 - `update`: `@request.auth.id != ""`
 - `delete`: `@request.auth.id != ""`
 
-## Migration order
+## Порядок миграции
 
-1. Disable chat in UI.
-2. Add PocketBase client and config.
-3. Migrate auth.
-4. Migrate profile and image upload.
-5. Migrate posts.
-6. Migrate movies, ratings, and recommendations.
-7. Remove Firebase and Supabase packages after the new flow is stable.
+1. Отключить чат в интерфейсе.
+2. Добавить клиент PocketBase и конфигурацию.
+3. Перенести аутентификацию.
+4. Перенести профиль и загрузку изображений.
+5. Перенести посты.
+6. Перенести фильмы, оценки и рекомендации.
+7. Удалить пакеты Firebase и Supabase после того, как новый поток работы станет стабильным.

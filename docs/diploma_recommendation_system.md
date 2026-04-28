@@ -1,41 +1,41 @@
-# Recommendation System for Diploma Defense
+# Система рекомендаций для защиты диплома
 
-## What was built
+## Что было реализовано
 
-The application contains a separate movie recommendation module inside the Flutter social network. A user can rate movies and mark them as liked, after which the system generates a personalized recommendation list.
+В приложении есть отдельный модуль рекомендаций фильмов внутри Flutter-социальной сети. Пользователь может оценивать фильмы и отмечать их как понравившиеся, после чего система формирует персонализированный список рекомендаций.
 
-The mobile client is responsible for:
+Мобильный клиент отвечает за:
 
-- collecting user ratings;
-- showing the movie catalog;
-- showing the resulting recommendations.
+- сбор оценок пользователей;
+- отображение каталога фильмов;
+- отображение итоговых рекомендаций.
 
-The offline Python pipeline is responsible for:
+Офлайн-пайплайн на Python отвечает за:
 
-- exporting user ratings from PocketBase;
-- combining them with MovieLens;
-- computing recommendations;
-- writing the results back to PocketBase.
+- экспорт оценок пользователя из PocketBase;
+- объединение их с MovieLens;
+- вычисление рекомендаций;
+- запись результатов обратно в PocketBase.
 
-## Algorithm
+## Алгоритм
 
-The recommendation algorithm is **item-based collaborative filtering**.
+Алгоритм рекомендаций основан на **item-based collaborative filtering**.
 
-In simple terms:
+Проще говоря:
 
-1. We build a user-movie rating matrix from MovieLens.
-2. We add the current application user to this matrix.
-3. We calculate cosine similarity between movies.
-4. If the user rated movie A highly, the system looks for movies that have a similar rating pattern among other users.
-5. Similar unseen movies receive a recommendation score and are ranked.
+1. Мы строим матрицу оценок пользователь-фильм на основе MovieLens.
+2. Добавляем в эту матрицу текущего пользователя приложения.
+3. Вычисляем косинусное сходство между фильмами.
+4. Если пользователь высоко оценил фильм A, система ищет фильмы с похожим паттерном оценок у других пользователей.
+5. Похожие, но ещё не просмотренные фильмы получают оценку рекомендации и ранжируются.
 
-This approach was chosen because it is:
+Этот подход выбран потому, что он:
 
-- easy to explain in a diploma;
-- based on a classic and academically recognizable method;
-- suitable for a prototype with a public dataset.
+- легко объясняется в дипломе;
+- основан на классическом и академически узнаваемом методе;
+- подходит для прототипа на открытом наборе данных.
 
-## Pipeline Scheme
+## Схема пайплайна
 
 ```mermaid
 flowchart LR
@@ -48,51 +48,51 @@ flowchart LR
     G --> H["Flutter recommendations screen"]
 ```
 
-## Why MovieLens was used
+## Почему был выбран MovieLens
 
-MovieLens was selected because:
+MovieLens был выбран потому, что:
 
-- it is a well-known public recommendation dataset;
-- it contains a large number of user ratings;
-- it is suitable for collaborative filtering experiments;
-- it helps avoid manually inventing artificial training users.
+- это известный публичный набор данных для рекомендаций;
+- он содержит большое количество пользовательских оценок;
+- он подходит для экспериментов с collaborative filtering;
+- он помогает избежать ручного создания искусственных обучающих пользователей.
 
-In the diploma, MovieLens can be described as the historical rating base of the system, while the current mobile app user is added as a new participant whose preferences are analyzed against that background.
+В дипломе MovieLens можно описывать как историческую базу оценок системы, а текущего пользователя мобильного приложения — как нового участника, чьи предпочтения анализируются на этом фоне.
 
-## What can be shown during defense
+## Что можно показать на защите
 
-Recommended demonstration scenario:
+Рекомендуемый сценарий демонстрации:
 
-1. A user logs into the application.
-2. The user rates 15-20 movies on the movie screen.
-3. The administrator opens the recommendation panel.
-4. The recommendation rebuild script is launched from the host computer.
-5. The recommendations screen is refreshed.
-6. The updated recommendation list with posters, descriptions, and scores is shown.
+1. Пользователь входит в приложение.
+2. Пользователь оценивает 15-20 фильмов на экране фильмов.
+3. Администратор открывает панель рекомендаций.
+4. На компьютере запускается скрипт пересборки рекомендаций.
+5. Экран рекомендаций обновляется.
+6. Показывается обновлённый список рекомендаций с постерами, описаниями и оценками.
 
-## Qualitative metrics to mention
+## Качественные метрики, которые можно упомянуть
 
-For the diploma demo, the following lightweight metrics are enough:
+Для демонстрации в дипломе достаточно следующих простых метрик:
 
-- how many movies the user has rated;
-- how many recommendations were generated;
-- the average recommendation score;
-- the dominant genres in the recommendation list;
-- whether the top recommendations changed after new ratings were added.
+- сколько фильмов оценил пользователь;
+- сколько рекомендаций было сгенерировано;
+- средняя оценка рекомендации;
+- доминирующие жанры в списке рекомендаций;
+- изменились ли топовые рекомендации после добавления новых оценок.
 
-These values are partially visible in the in-app admin panel, and the rebuild script can also generate a small comparison report between consecutive runs.
+Эти значения частично видны во внутренней административной панели, а скрипт пересборки также может сформировать небольшой сравнительный отчёт между последовательными запусками.
 
-## Limitations
+## Ограничения
 
-- The recommendation rebuild is currently run on the host computer through PowerShell, not directly on the phone.
-- The algorithm is intentionally simple and diploma-friendly, not production-grade.
-- Recommendation quality depends on how many movies the user has rated.
+- Пересборка рекомендаций сейчас выполняется на хост-компьютере через PowerShell, а не напрямую на телефоне.
+- Алгоритм намеренно простой и ориентирован на диплом, а не на промышленную эксплуатацию.
+- Качество рекомендаций зависит от того, сколько фильмов оценил пользователь.
 
-## Practical result
+## Практический результат
 
-The final system works end-to-end:
+Итоговая система работает end-to-end:
 
-- Flutter collects ratings;
-- PocketBase stores user and movie data;
-- Python calculates personalized recommendations from MovieLens;
-- the app displays the resulting recommendations to the user.
+- Flutter собирает оценки;
+- PocketBase хранит данные о пользователях и фильмах;
+- Python вычисляет персональные рекомендации на основе MovieLens;
+- приложение показывает пользователю итоговые рекомендации.

@@ -1,14 +1,14 @@
-# Recommendation Pipeline
+# Пайплайн рекомендаций
 
-This folder contains a minimal offline pipeline for the diploma demo:
+В этой папке находится минимальный офлайн-пайплайн для демонстрации диплома:
 
-1. Read a MovieLens dataset.
-2. Export an initial movie catalog for the Flutter app.
-3. Merge it with ratings collected from the Flutter app.
-4. Compute top-N movie recommendations.
-5. Export JSON that can be uploaded to Firestore.
+1. Считывает набор данных MovieLens.
+2. Экспортирует стартовый каталог фильмов для Flutter-приложения.
+3. Объединяет его с оценками, собранными из Flutter-приложения.
+4. Вычисляет топ-N рекомендаций фильмов.
+5. Экспортирует JSON, который можно загрузить в Firestore.
 
-## Suggested Firestore structure
+## Рекомендуемая структура Firestore
 
 - `movies/{movieId}`
   - `id`
@@ -32,17 +32,17 @@ This folder contains a minimal offline pipeline for the diploma demo:
   - `generatedAt`
   - optional denormalized fields: `title`, `genres`, `posterUrl`, `overview`, `year`
 
-## Dataset
+## Набор данных
 
-Recommended source: MovieLens latest-small or 32M from GroupLens.
+Рекомендуемый источник: MovieLens latest-small или 32M от GroupLens.
 
-Expected files inside `dataset_dir`:
+Ожидаемые файлы внутри `dataset_dir`:
 
 - `movies.csv`
 - `ratings.csv`
 - `links.csv`
 
-## Local ratings format
+## Формат локальных оценок
 
 Create a JSON file like this:
 
@@ -54,9 +54,9 @@ Create a JSON file like this:
 ]
 ```
 
-## Run
+## Запуск
 
-Export a starter movie catalog:
+Экспорт стартового каталога фильмов:
 
 ```bash
 python movielens_movies_export.py ^
@@ -65,9 +65,9 @@ python movielens_movies_export.py ^
   --limit 200
 ```
 
-Then upload `movies_seed.json` into the `movies` collection.
+Затем загрузите `movies_seed.json` в коллекцию `movies`.
 
-To enrich MovieLens with posters and descriptions from TMDB:
+Чтобы обогатить MovieLens постерами и описаниями из TMDB:
 
 ```bash
 python enrich_movies_with_tmdb.py ^
@@ -77,9 +77,9 @@ python enrich_movies_with_tmdb.py ^
   --limit 200
 ```
 
-Then import `movies_enriched.json` instead of `movies_seed.json`.
+Затем импортируйте `movies_enriched.json` вместо `movies_seed.json`.
 
-You can also enrich an existing export in place:
+Также можно обогатить уже существующий экспорт на месте:
 
 ```bash
 python enrich_movies_with_tmdb.py ^
@@ -90,14 +90,14 @@ python enrich_movies_with_tmdb.py ^
   --language ru-RU
 ```
 
-Notes:
+Примечания:
 
-- the script uses `links.csv` to map each MovieLens `movieId` to a TMDB `tmdbId`
-- `--tmdb-token` can be omitted if `TMDB_BEARER_TOKEN` is set in the environment
-- the output keeps MovieLens ids, but fills `posterUrl`, `overview`, `genres`, `year`, and `popularity` from TMDB when available
-- if TMDB has no match, the script falls back to the original MovieLens data instead of failing the whole export
+- скрипт использует `links.csv`, чтобы сопоставить каждый `movieId` из MovieLens с `tmdbId` из TMDB
+- `--tmdb-token` можно не указывать, если `TMDB_BEARER_TOKEN` задан в окружении
+- результат сохраняет идентификаторы MovieLens, но при наличии данных заполняет `posterUrl`, `overview`, `genres`, `year` и `popularity` из TMDB
+- если в TMDB нет совпадения, скрипт откатывается к исходным данным MovieLens вместо того, чтобы прерывать весь экспорт
 
-To enrich and import into PocketBase in one step:
+Чтобы обогатить данные и импортировать их в PocketBase за один шаг:
 
 ```powershell
 $env:TMDB_BEARER_TOKEN="YOUR_TMDB_BEARER_TOKEN"
@@ -106,11 +106,9 @@ $env:TMDB_BEARER_TOKEN="YOUR_TMDB_BEARER_TOKEN"
   -SuperuserPassword "your_password"
 ```
 
-This helper can also mirror posters into your local PocketBase `media`
-collection, so the Flutter emulator loads images from PocketBase instead of
-directly from TMDB.
+Этот помощник также может зеркалировать постеры в вашу локальную коллекцию PocketBase `media`, чтобы эмулятор Flutter загружал изображения из PocketBase, а не напрямую из TMDB.
 
-Generate recommendations:
+Сгенерировать рекомендации:
 
 ```bash
 python movielens_recommender.py ^
@@ -120,11 +118,11 @@ python movielens_recommender.py ^
   --output-file recommendations.json
 ```
 
-The script writes a JSON array that can be uploaded into:
+Скрипт записывает JSON-массив, который можно загрузить в:
 
 - `recommendations/{userId}/items`
 
-Upload movies:
+Загрузка фильмов:
 
 ```bash
 python firestore_import_json.py ^
@@ -134,7 +132,7 @@ python firestore_import_json.py ^
   --doc-id-field id
 ```
 
-Upload recommendations:
+Загрузка рекомендаций:
 
 ```bash
 python firestore_import_json.py ^
@@ -146,9 +144,9 @@ python firestore_import_json.py ^
   --doc-id-field movieId
 ```
 
-## PocketBase flow
+## Поток PocketBase
 
-Import movies into PocketBase:
+Импорт фильмов в PocketBase:
 
 ```bash
 python pocketbase_import_json.py ^
@@ -160,7 +158,7 @@ python pocketbase_import_json.py ^
   --lookup-template "movieId={movieId}"
 ```
 
-Export one user's ratings from PocketBase:
+Экспорт оценок одного пользователя из PocketBase:
 
 ```bash
 python pocketbase_export_ratings.py ^
@@ -171,13 +169,11 @@ python pocketbase_export_ratings.py ^
   --output-file user_ratings.json
 ```
 
-Note:
+Примечание:
 
-- if older `ratings.movieId` values contain PocketBase internal record ids instead
-  of MovieLens ids, the exporter will try to resolve them through the `movies`
-  collection automatically.
+- если старые значения `ratings.movieId` содержат внутренние идентификаторы записей PocketBase вместо идентификаторов MovieLens, экспортёр попытается автоматически разрешить их через коллекцию `movies`
 
-Generate recommendations:
+Сгенерировать рекомендации:
 
 ```bash
 python movielens_recommender.py ^
@@ -187,7 +183,7 @@ python movielens_recommender.py ^
   --output-file recommendations.json
 ```
 
-Import recommendations into PocketBase:
+Импорт рекомендаций в PocketBase:
 
 ```bash
 python pocketbase_import_json.py ^
@@ -199,7 +195,7 @@ python pocketbase_import_json.py ^
   --lookup-template "uid={uid} && movieId={movieId}"
 ```
 
-Rebuild one user's recommendations end-to-end in one command:
+Пересобрать рекомендации одного пользователя end-to-end одной командой:
 
 ```powershell
 .\tools\recommendation_pipeline\rebuild_recommendations.ps1 `
@@ -208,22 +204,21 @@ Rebuild one user's recommendations end-to-end in one command:
   -UserId "YOUR_UID"
 ```
 
-This helper:
+Этот помощник:
 
-- exports the current user's ratings from PocketBase
-- computes top-N recommendations from MovieLens
-- imports them into the `recommendations` collection
-- synchronizes titles, posters, genres, and overviews from `movies`
-- if a previous local recommendation file exists, builds a small comparison report
-  with overlap and changed movie ids
+- экспортирует оценки текущего пользователя из PocketBase
+- вычисляет топ-N рекомендаций на основе MovieLens
+- импортирует их в коллекцию `recommendations`
+- синхронизирует названия, постеры, жанры и описания из `movies`
+- если существует предыдущий локальный файл рекомендаций, формирует небольшой сравнительный отчёт с пересечением и изменившимися идентификаторами фильмов
 
-The comparison report is saved into:
+Сравнительный отчёт сохраняется в:
 
 - `assets/db/generated/recommendation_report_<uid>.json`
 
-## Optional Firestore upload
+## Необязательная загрузка в Firestore
 
-If you have a Firebase service account JSON, you can upload results directly:
+Если у вас есть JSON сервисного аккаунта Firebase, вы можете загружать результаты напрямую:
 
 ```bash
 python movielens_recommender.py ^
@@ -235,15 +230,15 @@ python movielens_recommender.py ^
   --firebase-project your-project-id
 ```
 
-## Notes
+## Примечания
 
-- This pipeline is intentionally simple and diploma-friendly.
-- It uses item-based collaborative filtering from a user-item matrix.
-- For production, you would likely move recommendation generation to a backend job.
-- TMDB data usage should follow their attribution and API terms: [TMDB docs](https://developer.themoviedb.org/), [TMDB API reference](https://developer.themoviedb.org/reference/movie-details), [TMDB configuration endpoint](https://developer.themoviedb.org/reference/configuration-details)
+- Этот пайплайн намеренно простой и подходит для диплома.
+- Он использует item-based collaborative filtering на основе матрицы пользователь-элемент.
+- Для production, вероятно, стоит перенести генерацию рекомендаций в backend-job.
+- При использовании данных TMDB нужно соблюдать их требования к атрибуции и API: [документация TMDB](https://developer.themoviedb.org/), [справочник API TMDB](https://developer.themoviedb.org/reference/movie-details), [эндпоинт конфигурации TMDB](https://developer.themoviedb.org/reference/configuration-details)
 
-## Defense notes
+## Примечания для защиты
 
-For a short diploma explanation, see:
+Для краткого объяснения в дипломе см.:
 
 - `docs/diploma_recommendation_system.md`
