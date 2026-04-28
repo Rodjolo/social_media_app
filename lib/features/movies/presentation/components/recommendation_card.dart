@@ -47,7 +47,9 @@ class RecommendationCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 6),
-                  Text('Оценка рекомендации: ${item.score.toStringAsFixed(2)}'),
+                  Text(
+                    'Оценка рекомендации: ${item.score.toStringAsFixed(2)}',
+                  ),
                   if (localizedReason.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(localizedReason),
