@@ -199,6 +199,22 @@ python pocketbase_import_json.py ^
   --lookup-template "uid={uid} && movieId={movieId}"
 ```
 
+Rebuild one user's recommendations end-to-end in one command:
+
+```powershell
+.\tools\recommendation_pipeline\rebuild_recommendations.ps1 `
+  -SuperuserEmail "admin@example.com" `
+  -SuperuserPassword "your_password" `
+  -UserId "YOUR_UID"
+```
+
+This helper:
+
+- exports the current user's ratings from PocketBase
+- computes top-N recommendations from MovieLens
+- imports them into the `recommendations` collection
+- synchronizes titles, posters, genres, and overviews from `movies`
+
 ## Optional Firestore upload
 
 If you have a Firebase service account JSON, you can upload results directly:
