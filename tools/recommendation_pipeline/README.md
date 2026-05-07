@@ -1,50 +1,29 @@
 # Пайплайн рекомендаций
 
-В этой папке находится минимальный офлайн-пайплайн для демонстрации диплома:
+В этой папке находится offline-пайплайн для демонстрации диплома.
 
-1. Считывает набор данных MovieLens.
-2. Экспортирует стартовый каталог фильмов для Flutter-приложения.
-3. Объединяет его с оценками, собранными из Flutter-приложения.
-4. Вычисляет топ-N рекомендаций фильмов.
-5. Экспортирует JSON, который можно загрузить в Firestore.
+Он решает четыре задачи:
 
-## Рекомендуемая структура Firestore
+1. Подготавливает каталог фильмов из MovieLens.
+2. Обогащает фильмы метаданными из TMDB.
+3. Вычисляет персональные рекомендации на основе оценок пользователя.
+4. Загружает результат обратно в PocketBase.
 
-- `movies/{movieId}`
-  - `id`
-  - `title`
-  - `genres`
-  - `posterUrl`
-  - `overview`
-  - `year`
-  - `popularity`
-- `ratings/{uid_movieId}`
-  - `id`
-  - `uid`
-  - `movieId`
-  - `rating`
-  - `liked`
-  - `timestamp`
-- `recommendations/{uid}/items/{movieId}`
-  - `movieId`
-  - `score`
-  - `reason`
-  - `generatedAt`
-  - optional denormalized fields: `title`, `genres`, `posterUrl`, `overview`, `year`
+## Какие файлы нужны
 
-## Набор данных
-
-Рекомендуемый источник: MovieLens latest-small или 32M от GroupLens.
-
-Ожидаемые файлы внутри `dataset_dir`:
+В папке датасета MovieLens должны быть:
 
 - `movies.csv`
 - `ratings.csv`
 - `links.csv`
 
-## Формат локальных оценок
+Рекомендуемый источник:
 
-Create a JSON file like this:
+- `MovieLens latest-small`
+
+## Формат локальных оценок пользователя
+
+Пример файла:
 
 ```json
 [
@@ -54,148 +33,81 @@ Create a JSON file like this:
 ]
 ```
 
-## Запуск
+## Экспорт стартового каталога фильмов
 
-Экспорт стартового каталога фильмов:
-
-```bash
-python movielens_movies_export.py ^
-  --dataset-dir path/to/ml-latest-small ^
-  --output-file movies_seed.json ^
+```powershell
+python .\tools\recommendation_pipeline\movielens_movies_export.py `
+  --dataset-dir .\assets\db\ml-latest-small `
+  --output-file .\assets\db\movies_seed.json `
   --limit 200
 ```
 
-Затем загрузите `movies_seed.json` в коллекцию `movies`.
-
-Чтобы обогатить MovieLens постерами и описаниями из TMDB:
-
-```bash
-python enrich_movies_with_tmdb.py ^
-  --dataset-dir path/to/ml-latest-small ^
-  --tmdb-token YOUR_TMDB_BEARER_TOKEN ^
-  --output-file movies_enriched.json ^
-  --limit 200
-```
-
-Затем импортируйте `movies_enriched.json` вместо `movies_seed.json`.
-
-Также можно обогатить уже существующий экспорт на месте:
-
-```bash
-python enrich_movies_with_tmdb.py ^
-  --dataset-dir path/to/ml-latest-small ^
-  --input-file movies_seed.json ^
-  --tmdb-token YOUR_TMDB_BEARER_TOKEN ^
-  --output-file movies_enriched.json ^
-  --language ru-RU
-```
-
-Примечания:
-
-- скрипт использует `links.csv`, чтобы сопоставить каждый `movieId` из MovieLens с `tmdbId` из TMDB
-- `--tmdb-token` можно не указывать, если `TMDB_BEARER_TOKEN` задан в окружении
-- результат сохраняет идентификаторы MovieLens, но при наличии данных заполняет `posterUrl`, `overview`, `genres`, `year` и `popularity` из TMDB
-- если в TMDB нет совпадения, скрипт откатывается к исходным данным MovieLens вместо того, чтобы прерывать весь экспорт
-
-Чтобы обогатить данные и импортировать их в PocketBase за один шаг:
+## Обогащение фильмов через TMDB
 
 ```powershell
 $env:TMDB_BEARER_TOKEN="YOUR_TMDB_BEARER_TOKEN"
-.\tools\recommendation_pipeline\sync_movies_with_tmdb.ps1 `
-  -SuperuserEmail "admin@example.com" `
-  -SuperuserPassword "your_password"
+python .\tools\recommendation_pipeline\enrich_movies_with_tmdb.py `
+  --dataset-dir .\assets\db\ml-latest-small `
+  --input-file .\assets\db\movies_seed.json `
+  --output-file .\assets\db\movies_enriched.json `
+  --language ru-RU
 ```
 
-Этот помощник также может зеркалировать постеры в вашу локальную коллекцию PocketBase `media`, чтобы эмулятор Flutter загружал изображения из PocketBase, а не напрямую из TMDB.
+Что заполняется:
 
-Сгенерировать рекомендации:
+- русское название;
+- описание;
+- жанры;
+- постер;
+- год;
+- популярность.
 
-```bash
-python movielens_recommender.py ^
-  --dataset-dir path/to/ml-latest-small ^
-  --user-id demo_user ^
-  --user-ratings-file path/to/user_ratings.json ^
-  --output-file recommendations.json
-```
+## Импорт фильмов в PocketBase
 
-Скрипт записывает JSON-массив, который можно загрузить в:
-
-- `recommendations/{userId}/items`
-
-Загрузка фильмов:
-
-```bash
-python firestore_import_json.py ^
-  --service-account path/to/serviceAccount.json ^
-  --collection movies ^
-  --json-file movies_seed.json ^
-  --doc-id-field id
-```
-
-Загрузка рекомендаций:
-
-```bash
-python firestore_import_json.py ^
-  --service-account path/to/serviceAccount.json ^
-  --collection recommendations ^
-  --subcollection-user-id YOUR_UID ^
-  --subcollection items ^
-  --json-file recommendations.json ^
-  --doc-id-field movieId
-```
-
-## Поток PocketBase
-
-Импорт фильмов в PocketBase:
-
-```bash
-python pocketbase_import_json.py ^
-  --base-url http://127.0.0.1:8090 ^
-  --superuser-email admin@example.com ^
-  --superuser-password your_password ^
-  --collection movies ^
-  --json-file movies_enriched.json ^
+```powershell
+python .\tools\recommendation_pipeline\pocketbase_import_json.py `
+  --base-url http://127.0.0.1:8090 `
+  --superuser-email "admin@example.com" `
+  --superuser-password "your_password" `
+  --collection movies `
+  --json-file .\assets\db\movies_enriched.json `
   --lookup-template "movieId={movieId}"
 ```
 
-Экспорт оценок одного пользователя из PocketBase:
+## Экспорт оценок пользователя
 
-```bash
-python pocketbase_export_ratings.py ^
-  --base-url http://127.0.0.1:8090 ^
-  --superuser-email admin@example.com ^
-  --superuser-password your_password ^
-  --user-id YOUR_UID ^
-  --output-file user_ratings.json
+```powershell
+python .\tools\recommendation_pipeline\pocketbase_export_ratings.py `
+  --base-url http://127.0.0.1:8090 `
+  --superuser-email "admin@example.com" `
+  --superuser-password "your_password" `
+  --user-id "YOUR_UID" `
+  --output-file .\assets\db\user_ratings.json
 ```
 
-Примечание:
+## Генерация рекомендаций
 
-- если старые значения `ratings.movieId` содержат внутренние идентификаторы записей PocketBase вместо идентификаторов MovieLens, экспортёр попытается автоматически разрешить их через коллекцию `movies`
-
-Сгенерировать рекомендации:
-
-```bash
-python movielens_recommender.py ^
-  --dataset-dir path/to/ml-latest-small ^
-  --user-id YOUR_UID ^
-  --user-ratings-file user_ratings.json ^
-  --output-file recommendations.json
+```powershell
+python .\tools\recommendation_pipeline\movielens_recommender.py `
+  --dataset-dir .\assets\db\ml-latest-small `
+  --user-id "YOUR_UID" `
+  --user-ratings-file .\assets\db\user_ratings.json `
+  --output-file .\assets\db\recommendations.json
 ```
 
-Импорт рекомендаций в PocketBase:
+## Импорт рекомендаций в PocketBase
 
-```bash
-python pocketbase_import_json.py ^
-  --base-url http://127.0.0.1:8090 ^
-  --superuser-email admin@example.com ^
-  --superuser-password your_password ^
-  --collection recommendations ^
-  --json-file recommendations.json ^
+```powershell
+python .\tools\recommendation_pipeline\pocketbase_import_json.py `
+  --base-url http://127.0.0.1:8090 `
+  --superuser-email "admin@example.com" `
+  --superuser-password "your_password" `
+  --collection recommendations `
+  --json-file .\assets\db\recommendations.json `
   --lookup-template "uid={uid} && movieId={movieId}"
 ```
 
-Пересобрать рекомендации одного пользователя end-to-end одной командой:
+## Пересчет одной командой
 
 ```powershell
 .\tools\recommendation_pipeline\rebuild_recommendations.ps1 `
@@ -204,41 +116,57 @@ python pocketbase_import_json.py ^
   -UserId "YOUR_UID"
 ```
 
-Этот помощник:
+Этот скрипт:
 
-- экспортирует оценки текущего пользователя из PocketBase
-- вычисляет топ-N рекомендаций на основе MovieLens
-- импортирует их в коллекцию `recommendations`
-- синхронизирует названия, постеры, жанры и описания из `movies`
-- если существует предыдущий локальный файл рекомендаций, формирует небольшой сравнительный отчёт с пересечением и изменившимися идентификаторами фильмов
+- экспортирует оценки пользователя;
+- строит новые рекомендации;
+- импортирует их в PocketBase;
+- синхронизирует метаданные из `movies`;
+- при наличии предыдущего файла строит сравнительный отчет.
 
-Сравнительный отчёт сохраняется в:
+Сравнительный отчет сохраняется сюда:
 
 - `assets/db/generated/recommendation_report_<uid>.json`
 
-## Необязательная загрузка в Firestore
+## Локальный HTTP-сервис для запуска из приложения
 
-Если у вас есть JSON сервисного аккаунта Firebase, вы можете загружать результаты напрямую:
+Чтобы админ мог запускать пересчет прямо из Flutter-приложения, можно поднять маленький локальный сервис:
 
-```bash
-python movielens_recommender.py ^
-  --dataset-dir path/to/ml-latest-small ^
-  --user-id demo_user ^
-  --user-ratings-file path/to/user_ratings.json ^
-  --output-file recommendations.json ^
-  --service-account path/to/serviceAccount.json ^
-  --firebase-project your-project-id
+```powershell
+python .\tools\recommendation_pipeline\recommendation_service.py `
+  --superuser-email "admin@example.com" `
+  --superuser-password "your_password"
 ```
 
-## Примечания
+По умолчанию сервис работает на:
 
-- Этот пайплайн намеренно простой и подходит для диплома.
-- Он использует item-based collaborative filtering на основе матрицы пользователь-элемент.
-- Для production, вероятно, стоит перенести генерацию рекомендаций в backend-job.
-- При использовании данных TMDB нужно соблюдать их требования к атрибуции и API: [документация TMDB](https://developer.themoviedb.org/), [справочник API TMDB](https://developer.themoviedb.org/reference/movie-details), [эндпоинт конфигурации TMDB](https://developer.themoviedb.org/reference/configuration-details)
+- `http://127.0.0.1:8091` на хост-компьютере
+- `http://10.0.2.2:8091` для Android Emulator
 
-## Примечания для защиты
+Доступные endpoint:
 
-Для краткого объяснения в дипломе см.:
+- `GET /health`
+- `GET /status?userId=...`
+- `POST /rebuild`
 
-- `docs/diploma_recommendation_system.md`
+Пример тела запроса:
+
+```json
+{
+  "userId": "YOUR_UID",
+  "topN": 10
+}
+```
+
+## Что важно для диплома
+
+Этот пайплайн intentionally простой и хорошо подходит именно для дипломного проекта:
+
+- алгоритм легко объясняется;
+- используется публичный датасет MovieLens;
+- результат можно воспроизводимо показать на защите;
+- пользовательские оценки реально влияют на итоговую подборку.
+
+Подробное описание научной части:
+
+- [docs/diploma_recommendation_system.md](/C:/Flutter%20Projects/SocialMediaApp/social_media_app/docs/diploma_recommendation_system.md)

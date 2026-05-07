@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:socail_media_app/config/backend_config.dart';
 import 'package:socail_media_app/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:socail_media_app/features/movies/data/recommendation_service_client.dart';
 import 'package:socail_media_app/features/movies/domain/entities/recommendation_item.dart';
+import 'package:socail_media_app/features/movies/domain/entities/recommendation_rebuild_status.dart';
 import 'package:socail_media_app/features/movies/presentation/cubits/movie_cubit.dart';
 import 'package:socail_media_app/features/movies/presentation/cubits/movie_states.dart';
 import 'package:socail_media_app/responsive/constrained_scaffold.dart';
@@ -24,7 +29,17 @@ class RecommendationAdminPage extends StatefulWidget {
 
 class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
   late final MovieCubit movieCubit = context.read<MovieCubit>();
-  late final bool isAdmin = context.read<AuthCubit>().currentUser?.isAdmin ?? false;
+  late final bool isAdmin =
+      context.read<AuthCubit>().currentUser?.isAdmin ?? false;
+  late final RecommendationServiceClient _serviceClient =
+      RecommendationServiceClient();
+
+  RecommendationRebuildStatus? _serviceStatus;
+  bool _serviceHealthy = false;
+  bool _serviceLoading = false;
+  bool _serviceBusy = false;
+  DateTime? _lastAppliedFinishedAt;
+  Timer? _pollTimer;
 
   @override
   void initState() {
@@ -37,6 +52,93 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
     if (state is! MovieLoaded) {
       movieCubit.loadRecommendationsScreen(widget.uid);
     }
+
+    _refreshServiceState();
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _refreshServiceState(silent: true),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _serviceClient.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refreshServiceState({bool silent = false}) async {
+    if (_serviceBusy) {
+      return;
+    }
+
+    if (!silent && mounted) {
+      setState(() => _serviceLoading = true);
+    }
+
+    try {
+      final healthy = await _serviceClient.isHealthy();
+      RecommendationRebuildStatus? status;
+      if (healthy) {
+        status = await _serviceClient.fetchStatus(widget.uid);
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _serviceHealthy = healthy;
+        _serviceStatus = status;
+      });
+
+      final shouldRefreshRecommendations = status != null &&
+          status.state == 'completed' &&
+          status.finishedAt != null &&
+          status.finishedAt != _lastAppliedFinishedAt;
+      if (shouldRefreshRecommendations) {
+        _lastAppliedFinishedAt = status!.finishedAt;
+        movieCubit.loadRecommendationsScreen(widget.uid);
+      }
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _serviceHealthy = false;
+      });
+    } finally {
+      if (mounted && !silent) {
+        setState(() => _serviceLoading = false);
+      }
+    }
+  }
+
+  Future<void> _triggerRebuild() async {
+    setState(() => _serviceBusy = true);
+    try {
+      await _serviceClient.triggerRebuild(userId: widget.uid);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Пересчет запущен через локальный сервис'),
+        ),
+      );
+      await _refreshServiceState();
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось запустить пересчет: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _serviceBusy = false);
+      }
+    }
   }
 
   @override
@@ -48,7 +150,10 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
           if (isAdmin)
             IconButton(
               tooltip: 'Обновить',
-              onPressed: () => movieCubit.loadRecommendationsScreen(widget.uid),
+              onPressed: () async {
+                await _refreshServiceState();
+                await movieCubit.loadRecommendationsScreen(widget.uid);
+              },
               icon: const Icon(Icons.refresh),
             ),
         ],
@@ -76,7 +181,8 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
         final latestGeneratedAt = _latestGeneratedAt(state.recommendations);
         final averageScore = averageRecommendationScore(state.recommendations);
         final topGenres = topRecommendationGenres(state.recommendations);
-        final command = _rebuildCommand(widget.uid);
+        final scriptCommand = _rebuildCommand(widget.uid);
+        final serviceCommand = _serviceCommand();
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -106,11 +212,77 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
             ),
             const SizedBox(height: 12),
             _StatusCard(
+              title: 'Локальный сервис пересчета',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _serviceHealthy
+                        ? 'Сервис доступен: ${BackendConfig.recommendationServiceUrl}'
+                        : 'Сервис недоступен. Сначала запустите его на компьютере.',
+                  ),
+                  if (_serviceStatus != null) ...[
+                    const SizedBox(height: 8),
+                    Text('Состояние: ${_serviceStateLabel(_serviceStatus!)}'),
+                    if ((_serviceStatus?.message ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text('Сообщение: ${_serviceStatus!.message}'),
+                    ],
+                    if (_serviceStatus?.startedAt != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Запущено: ${_formatDateTime(_serviceStatus!.startedAt!)}',
+                      ),
+                    ],
+                    if (_serviceStatus?.finishedAt != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Завершено: ${_formatDateTime(_serviceStatus!.finishedAt!)}',
+                      ),
+                    ],
+                    if (_serviceStatus?.report != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _buildComparisonSummary(_serviceStatus!.report!),
+                      ),
+                    ],
+                  ],
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: (!_serviceHealthy ||
+                                _serviceBusy ||
+                                _serviceLoading ||
+                                ratingCount < _minimumRatingsForStart)
+                            ? null
+                            : _triggerRebuild,
+                        icon: const Icon(Icons.auto_fix_high),
+                        label: Text(
+                          _serviceBusy ? 'Запуск...' : 'Сформировать рекомендации',
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _serviceLoading ? null : _refreshServiceState,
+                        icon: const Icon(Icons.sync),
+                        label: const Text('Проверить статус'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _StatusCard(
               title: 'Краткая аналитика',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Средний score рекомендаций: ${averageScore.toStringAsFixed(2)}'),
+                  Text(
+                    'Средний score рекомендаций: ${averageScore.toStringAsFixed(2)}',
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     topGenres.isEmpty
@@ -120,7 +292,12 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                   const SizedBox(height: 8),
                   Text('Сила профиля: ${_profileStrengthLabel(ratingCount)}'),
                   const SizedBox(height: 12),
-                  Text(_qualityAssessmentText(state.recommendations.length, ratingCount)),
+                  Text(
+                    _qualityAssessmentText(
+                      state.recommendations.length,
+                      ratingCount,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -168,16 +345,27 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
             ),
             const SizedBox(height: 12),
             _StatusCard(
-              title: 'Запуск пересчета',
+              title: 'Запуск сервиса и ручной fallback',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'На мобильном устройстве PowerShell-скрипт запустить нельзя, поэтому пересчет выполняется на компьютере в корне проекта одной командой.',
+                    'Для дипломной демонстрации можно один раз запустить локальный сервис на компьютере, а дальше запускать пересчет прямо из приложения.',
                   ),
                   const SizedBox(height: 12),
                   SelectableText(
-                    command,
+                    serviceCommand,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'monospace',
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Если сервис не запущен, остается доступен ручной сценарий через PowerShell-скрипт:',
+                  ),
+                  const SizedBox(height: 12),
+                  SelectableText(
+                    scriptCommand,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontFamily: 'monospace',
                         ),
@@ -190,20 +378,20 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                       FilledButton.icon(
                         onPressed: () => _copyAndNotify(
                           context,
-                          text: command,
-                          message: 'Команда скопирована',
+                          text: serviceCommand,
+                          message: 'Команда запуска сервиса скопирована',
                         ),
-                        icon: const Icon(Icons.copy),
-                        label: const Text('Сформировать на компьютере'),
+                        icon: const Icon(Icons.memory),
+                        label: const Text('Скопировать команду сервиса'),
                       ),
                       OutlinedButton.icon(
                         onPressed: () => _copyAndNotify(
                           context,
-                          text: widget.uid,
-                          message: 'UID скопирован',
+                          text: scriptCommand,
+                          message: 'Команда скрипта скопирована',
                         ),
-                        icon: const Icon(Icons.badge_outlined),
-                        label: const Text('Скопировать UID'),
+                        icon: const Icon(Icons.copy),
+                        label: const Text('Скопировать fallback-команду'),
                       ),
                     ],
                   ),
@@ -348,11 +536,45 @@ String _formatDateTime(DateTime value) {
   return '$day.$month.$year $hour:$minute';
 }
 
+String _serviceStateLabel(RecommendationRebuildStatus status) {
+  switch (status.state) {
+    case 'running':
+      return 'идет пересчет';
+    case 'completed':
+      return 'завершено успешно';
+    case 'failed':
+      return 'завершено с ошибкой';
+    default:
+      return 'ожидание';
+  }
+}
+
+String _buildComparisonSummary(Map<String, dynamic> report) {
+  final overlapRatio = report['overlapRatio']?.toString() ?? '0';
+  final newMovieIds = (report['newMovieIds'] as List<dynamic>? ?? const [])
+      .map((item) => item.toString())
+      .toList();
+  final currentTopGenres =
+      (report['currentTopGenres'] as List<dynamic>? ?? const [])
+          .map((item) => item.toString())
+          .toList();
+
+  return 'Сравнение с прошлым пересчетом: overlap = $overlapRatio, '
+      'новые movieId = ${newMovieIds.isEmpty ? 'нет' : newMovieIds.join(', ')}, '
+      'топ жанры = ${currentTopGenres.isEmpty ? 'нет данных' : currentTopGenres.join(', ')}.';
+}
+
 String _rebuildCommand(String uid) {
   return '.\\tools\\recommendation_pipeline\\rebuild_recommendations.ps1 `\n'
       '  -SuperuserEmail "admin@example.com" `\n'
       '  -SuperuserPassword "your_password" `\n'
       '  -UserId "$uid"';
+}
+
+String _serviceCommand() {
+  return 'python .\\tools\\recommendation_pipeline\\recommendation_service.py `\n'
+      '  --superuser-email "admin@example.com" `\n'
+      '  --superuser-password "your_password"';
 }
 
 Future<void> _copyAndNotify(

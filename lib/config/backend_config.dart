@@ -5,6 +5,11 @@ class BackendConfig {
     defaultValue: 'http://10.0.2.2:8090',
   );
 
+  static const String recommendationServiceUrl = String.fromEnvironment(
+    'RECOMMENDATION_SERVICE_URL',
+    defaultValue: 'http://10.0.2.2:8091',
+  );
+
   static const String usersCollection = 'users';
   static const String postsCollection = 'posts';
   static const String ratingsCollection = 'ratings';

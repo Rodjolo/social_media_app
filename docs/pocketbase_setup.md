@@ -1,77 +1,85 @@
 # Настройка PocketBase
 
-Этот проект переводится с Firebase + Supabase на PocketBase.
+Этот проект переведен с Firebase и Supabase на PocketBase.
 
 ## Локальный запуск
 
-Рекомендуемый URL локального сервера для эмулятора Android:
+Для Android Emulator рекомендуется использовать адрес:
 
 - `http://10.0.2.2:8090`
 
-Flutter-приложение читает его из:
+Для локального сервиса пересчета рекомендаций:
 
-- `lib/config/backend_config.dart`
+- `http://10.0.2.2:8091`
 
-Его можно переопределить во время сборки:
+Адреса задаются в:
 
-```bash
-flutter run --dart-define=POCKETBASE_URL=http://10.0.2.2:8090
+- [backend_config.dart](/C:/Flutter%20Projects/SocialMediaApp/social_media_app/lib/config/backend_config.dart)
+
+При необходимости их можно переопределить:
+
+```powershell
+flutter run --dart-define=POCKETBASE_URL=http://10.0.2.2:8090 --dart-define=RECOMMENDATION_SERVICE_URL=http://10.0.2.2:8091
 ```
 
-## Коллекции
+## Коллекции PocketBase
 
 ### `users`
 
-Коллекция авторизации.
+Тип коллекции:
 
-Fields:
+- `Auth`
 
-- `name` (`text`)
-- `bio` (`text`)
-- `profileImageUrl` (`text`)
-- `profileImage` (`file`, max 1)
-- `followers` (`json`)
-- `following` (`json`)
-- `favoriteGenres` (`json`)
-- `movieOnboardingCompleted` (`bool`)
+Поля:
 
-Параметры аутентификации PocketBase:
+- `name` — `text`
+- `bio` — `text`
+- `profileImageUrl` — `text`
+- `profileImage` — `file`, максимум 1
+- `followers` — `json`
+- `following` — `json`
+- `favoriteGenres` — `json`
+- `movieOnboardingCompleted` — `bool`
+- `isAdmin` — `bool`
 
-- collection type: `Auth`
-- enable email/password authentication
-- require unique email
-- allow authenticated users to manage their own record
+Рекомендуемые API rules:
 
-Рекомендуемые правила API для начальной локальной разработки:
-
-- list rule: `@request.auth.id != ""`
-- view rule: `@request.auth.id != ""`
-- create rule: empty
-- update rule: `@request.auth.id = id`
-- delete rule: `@request.auth.id = id`
+- `list`: `@request.auth.id != ""`
+- `view`: `@request.auth.id != ""`
+- `create`: пусто
+- `update`: `@request.auth.id = id`
+- `delete`: `@request.auth.id = id`
 
 ### `posts`
 
-Fields:
+Поля:
 
-- `userId` (`text`)
-- `userName` (`text`)
-- `text` (`text`)
-- `image` (`file`, max 1)
-- `imageUrl` (`text`)
-- `likes` (`json`)
-- `comments` (`json`)
-- `timestamp` (`date`)
+- `userId` — `text`
+- `userName` — `text`
+- `text` — `text`
+- `image` — `file`, максимум 1
+- `imageUrl` — `text`
+- `likes` — `json`
+- `comments` — `json`
+- `timestamp` — `date`
+
+Рекомендуемые API rules:
+
+- `list`: `@request.auth.id != ""`
+- `view`: `@request.auth.id != ""`
+- `create`: `@request.auth.id != ""`
+- `update`: `@request.auth.id != ""`
+- `delete`: `@request.auth.id != ""`
 
 ### `media`
 
-Fields:
+Поля:
 
-- `ownerId` (`text`)
-- `category` (`text`)
-- `file` (`file`, max 1)
+- `ownerId` — `text`
+- `category` — `text`
+- `file` — `file`, максимум 1
 
-Рекомендуемые правила API для локальной разработки:
+Рекомендуемые API rules:
 
 - `list`: `@request.auth.id != ""`
 - `view`: `@request.auth.id != ""`
@@ -81,17 +89,17 @@ Fields:
 
 ### `movies`
 
-Fields:
+Поля:
 
-- `movieId` (`text`)
-- `title` (`text`)
-- `genres` (`json`)
-- `posterUrl` (`text`)
-- `overview` (`text`)
-- `year` (`number`)
-- `popularity` (`number`)
+- `movieId` — `text`
+- `title` — `text`
+- `genres` — `json`
+- `posterUrl` — `text`
+- `overview` — `text`
+- `year` — `number`
+- `popularity` — `number`
 
-Рекомендуемые правила API для локальной разработки:
+Рекомендуемые API rules:
 
 - `list`: `@request.auth.id != ""`
 - `view`: `@request.auth.id != ""`
@@ -101,15 +109,15 @@ Fields:
 
 ### `ratings`
 
-Fields:
+Поля:
 
-- `uid` (`text`)
-- `movieId` (`text`)
-- `rating` (`number`)
-- `liked` (`bool`)
-- `timestamp` (`date`)
+- `uid` — `text`
+- `movieId` — `text`
+- `rating` — `number`
+- `liked` — `bool`
+- `timestamp` — `date`
 
-Рекомендуемые правила API для локальной разработки:
+Рекомендуемые API rules:
 
 - `list`: `@request.auth.id != "" && uid = @request.auth.id`
 - `view`: `@request.auth.id != "" && uid = @request.auth.id`
@@ -119,21 +127,21 @@ Fields:
 
 ### `recommendations`
 
-Fields:
+Поля:
 
-- `uid` (`text`)
-- `movieId` (`text`)
-- `score` (`number`)
-- `reason` (`text`)
-- `generatedAt` (`date`)
-- `title` (`text`)
-- `genres` (`json`)
-- `posterUrl` (`text`)
-- `overview` (`text`)
-- `year` (`number`)
-- `popularity` (`number`)
+- `uid` — `text`
+- `movieId` — `text`
+- `score` — `number`
+- `reason` — `text`
+- `generatedAt` — `date`
+- `title` — `text`
+- `genres` — `json`
+- `posterUrl` — `text`
+- `overview` — `text`
+- `year` — `number`
+- `popularity` — `number`
 
-Рекомендуемые правила API для локальной разработки:
+Рекомендуемые API rules:
 
 - `list`: `@request.auth.id != "" && uid = @request.auth.id`
 - `view`: `@request.auth.id != "" && uid = @request.auth.id`
@@ -141,12 +149,21 @@ Fields:
 - `update`: `@request.auth.id != ""`
 - `delete`: `@request.auth.id != ""`
 
+## Что обязательно для админ-панели рекомендаций
+
+Чтобы служебная панель пересчета была доступна только админу:
+
+1. Добавь в `users` поле `isAdmin`.
+2. Для своего пользователя выставь `isAdmin = true`.
+3. Для обычных пользователей оставь `false`.
+
+После этого нужно заново войти в приложение, чтобы роль перечиталась из PocketBase.
+
 ## Порядок миграции
 
-1. Отключить чат в интерфейсе.
-2. Добавить клиент PocketBase и конфигурацию.
-3. Перенести аутентификацию.
-4. Перенести профиль и загрузку изображений.
-5. Перенести посты.
-6. Перенести фильмы, оценки и рекомендации.
-7. Удалить пакеты Firebase и Supabase после того, как новый поток работы станет стабильным.
+1. Поднять PocketBase локально.
+2. Создать коллекцию `users` типа `Auth`.
+3. Создать `posts`, `media`, `movies`, `ratings`, `recommendations`.
+4. Импортировать фильмы.
+5. Протестировать регистрацию, профиль и посты.
+6. Протестировать оценки фильмов и рекомендации.
