@@ -3,6 +3,7 @@ class RecommendationRebuildStatus {
   final String state;
   final bool isRunning;
   final String? message;
+  final String? details;
   final DateTime? startedAt;
   final DateTime? finishedAt;
   final int? exitCode;
@@ -13,6 +14,7 @@ class RecommendationRebuildStatus {
     required this.state,
     required this.isRunning,
     this.message,
+    this.details,
     this.startedAt,
     this.finishedAt,
     this.exitCode,
@@ -25,6 +27,7 @@ class RecommendationRebuildStatus {
       state: json['state']?.toString() ?? 'idle',
       isRunning: json['isRunning'] == true,
       message: json['message']?.toString(),
+      details: json['details']?.toString(),
       startedAt: DateTime.tryParse(json['startedAt']?.toString() ?? ''),
       finishedAt: DateTime.tryParse(json['finishedAt']?.toString() ?? ''),
       exitCode: (json['exitCode'] as num?)?.toInt(),

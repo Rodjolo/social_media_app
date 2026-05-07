@@ -8,32 +8,51 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+import requests
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Local HTTP service for triggering recommendation rebuilds.",
+        description="Локальный HTTP-сервис для пересчета рекомендаций.",
     )
-    parser.add_argument("--host", default="0.0.0.0", help="Bind host.")
-    parser.add_argument("--port", type=int, default=8091, help="Bind port.")
-    parser.add_argument("--base-url", default="http://127.0.0.1:8090", help="PocketBase URL.")
-    parser.add_argument("--superuser-email", required=True, help="PocketBase superuser email.")
-    parser.add_argument("--superuser-password", required=True, help="PocketBase superuser password.")
+    parser.add_argument("--host", default="0.0.0.0", help="Адрес привязки.")
+    parser.add_argument("--port", type=int, default=8091, help="Порт сервиса.")
+    parser.add_argument(
+        "--base-url",
+        default="http://127.0.0.1:8090",
+        help="URL PocketBase.",
+    )
+    parser.add_argument(
+        "--superuser-email",
+        required=True,
+        help="Email superuser в PocketBase.",
+    )
+    parser.add_argument(
+        "--superuser-password",
+        required=True,
+        help="Пароль superuser в PocketBase.",
+    )
     parser.add_argument(
         "--dataset-dir",
         default="./assets/db/ml-latest-small",
-        help="Path to MovieLens dataset.",
+        help="Путь к MovieLens.",
     )
     parser.add_argument(
         "--working-dir",
         default="./assets/db/generated",
-        help="Directory for generated JSON files and status files.",
+        help="Папка для промежуточных файлов и статусов.",
     )
-    parser.add_argument("--top-n", type=int, default=10, help="How many recommendations to build.")
+    parser.add_argument(
+        "--top-n",
+        type=int,
+        default=10,
+        help="Сколько рекомендаций строить.",
+    )
     parser.add_argument(
         "--minimum-ratings",
         type=int,
         default=5,
-        help="Minimum rating threshold warning passed to rebuild script.",
+        help="Минимальный порог оценок для предупреждения.",
     )
     return parser.parse_args()
 
@@ -86,6 +105,40 @@ def load_report(working_dir: Path, user_id: str):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def verify_pocketbase_credentials(base_url: str, email: str, password: str):
+    response = requests.post(
+        f"{base_url.rstrip('/')}/api/collections/_superusers/auth-with-password",
+        json={"identity": email, "password": password},
+        timeout=30,
+    )
+    response.raise_for_status()
+
+
+def clean_command_output(value: str):
+    lines = [line.strip() for line in value.splitlines() if line.strip()]
+    noise_prefixes = (
+        "at ",
+        "строка:",
+        "CategoryInfo",
+        "FullyQualifiedErrorId",
+        "+ CategoryInfo",
+        "+ FullyQualifiedErrorId",
+        "+",
+    )
+    return [line for line in lines if not line.startswith(noise_prefixes)]
+
+
+def build_failure_message(stdout: str, stderr: str):
+    stderr_lines = clean_command_output(stderr)
+    stdout_lines = clean_command_output(stdout)
+
+    if stderr_lines:
+        return stderr_lines[0], " | ".join(stderr_lines[:4])
+    if stdout_lines:
+        return stdout_lines[-1], " | ".join(stdout_lines[-4:])
+    return "Пересчет завершился с ошибкой", ""
+
+
 def run_rebuild(args, store: RecommendationJobStore, user_id: str, top_n: int):
     store.set_status(
         user_id,
@@ -94,6 +147,7 @@ def run_rebuild(args, store: RecommendationJobStore, user_id: str, top_n: int):
             "state": "running",
             "isRunning": True,
             "message": "Пересчет рекомендаций выполняется",
+            "details": "",
             "startedAt": utc_now_iso(),
             "finishedAt": None,
             "exitCode": None,
@@ -136,20 +190,26 @@ def run_rebuild(args, store: RecommendationJobStore, user_id: str, top_n: int):
     )
 
     report = load_report(Path(args.working_dir), user_id)
-    output = (result.stdout or "").strip()
-    error = (result.stderr or "").strip()
-    message = output.splitlines()[-1] if output else ""
-    if error:
-        message = error.splitlines()[-1]
+    stdout = (result.stdout or "").strip()
+    stderr = (result.stderr or "").strip()
 
+    if result.returncode == 0:
+        lines = clean_command_output(stdout)
+        message = lines[-1] if lines else "Пересчет завершен"
+        details = " | ".join(lines[-4:])
+    else:
+        message, details = build_failure_message(stdout, stderr)
+
+    previous_status = store.get_status(user_id) or {}
     store.set_status(
         user_id,
         {
             "userId": user_id,
             "state": "completed" if result.returncode == 0 else "failed",
             "isRunning": False,
-            "message": message or "Пересчет завершен",
-            "startedAt": store.get_status(user_id)["startedAt"],
+            "message": message,
+            "details": details,
+            "startedAt": previous_status.get("startedAt"),
             "finishedAt": utc_now_iso(),
             "exitCode": result.returncode,
             "report": report,
@@ -258,11 +318,23 @@ def main():
     args.dataset_dir = str((repo_root / args.dataset_dir).resolve())
     args.working_dir = str(working_dir)
 
+    try:
+        verify_pocketbase_credentials(
+            args.base_url,
+            args.superuser_email,
+            args.superuser_password,
+        )
+    except Exception as error:
+        raise SystemExit(f"PocketBase auth check failed: {error}") from error
+
     store = RecommendationJobStore(working_dir)
     RecommendationServiceHandler.service_args = args
     RecommendationServiceHandler.store = store
 
-    server = ThreadingHTTPServer((args.host, args.port), RecommendationServiceHandler)
+    server = ThreadingHTTPServer(
+        (args.host, args.port),
+        RecommendationServiceHandler,
+    )
     print(
         f"Recommendation service listening on http://{args.host}:{args.port} "
         f"for PocketBase {args.base_url}"

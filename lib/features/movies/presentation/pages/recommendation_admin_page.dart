@@ -228,6 +228,13 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                       const SizedBox(height: 8),
                       Text('Сообщение: ${_serviceStatus!.message}'),
                     ],
+                    if ((_serviceStatus?.details ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SelectableText(
+                        'Детали: ${_serviceStatus!.details}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                     if (_serviceStatus?.startedAt != null) ...[
                       const SizedBox(height: 8),
                       Text(
