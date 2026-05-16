@@ -15,10 +15,23 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Get-PythonCommand {
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        return "py"
+    }
+
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        return "python"
+    }
+
+    throw "Python interpreter not found. Install Python or use the Windows py launcher."
+}
+
 if (-not (Test-Path $WorkingDir)) {
     New-Item -ItemType Directory -Path $WorkingDir | Out-Null
 }
 
+$pythonCommand = Get-PythonCommand
 $safeUserId = $UserId -replace '[^a-zA-Z0-9_-]', '_'
 $ratingsFile = Join-Path $WorkingDir "user_ratings_${safeUserId}.json"
 $previousRecommendationsFile = Join-Path $WorkingDir "recommendations_${safeUserId}_previous.json"
@@ -26,7 +39,7 @@ $recommendationsFile = Join-Path $WorkingDir "recommendations_${safeUserId}.json
 $comparisonReportFile = Join-Path $WorkingDir "recommendation_report_${safeUserId}.json"
 
 Write-Host "Step 1/4: Exporting user ratings from PocketBase..."
-python .\tools\recommendation_pipeline\pocketbase_export_ratings.py `
+& $pythonCommand .\tools\recommendation_pipeline\pocketbase_export_ratings.py `
     --base-url $BaseUrl `
     --superuser-email $SuperuserEmail `
     --superuser-password $SuperuserPassword `
@@ -54,7 +67,7 @@ if (Test-Path $recommendationsFile) {
     Copy-Item -Path $recommendationsFile -Destination $previousRecommendationsFile -Force
 }
 
-python .\tools\recommendation_pipeline\movielens_recommender.py `
+& $pythonCommand .\tools\recommendation_pipeline\movielens_recommender.py `
     --dataset-dir $DatasetDir `
     --user-id $UserId `
     --user-ratings-file $ratingsFile `
@@ -66,7 +79,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if (Test-Path $previousRecommendationsFile) {
-    python .\tools\recommendation_pipeline\compare_recommendation_runs.py `
+    & $pythonCommand .\tools\recommendation_pipeline\compare_recommendation_runs.py `
         --previous-file $previousRecommendationsFile `
         --current-file $recommendationsFile `
         --output-file $comparisonReportFile
@@ -82,7 +95,7 @@ if (Test-Path $previousRecommendationsFile) {
 }
 
 Write-Host "Step 3/4: Importing recommendations into PocketBase..."
-python .\tools\recommendation_pipeline\pocketbase_import_json.py `
+& $pythonCommand .\tools\recommendation_pipeline\pocketbase_import_json.py `
     --base-url $BaseUrl `
     --superuser-email $SuperuserEmail `
     --superuser-password $SuperuserPassword `
@@ -96,7 +109,7 @@ if ($LASTEXITCODE -ne 0) {
 
 if (-not $SkipMetadataSync) {
     Write-Host "Step 4/4: Syncing recommendation metadata..."
-    python .\tools\recommendation_pipeline\sync_recommendation_metadata.py `
+    & $pythonCommand .\tools\recommendation_pipeline\sync_recommendation_metadata.py `
         --base-url $BaseUrl `
         --superuser-email $SuperuserEmail `
         --superuser-password $SuperuserPassword `
