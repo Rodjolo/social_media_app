@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -180,7 +181,8 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
         }
 
         final ratingCount = state.ratingsByMovieId.length;
-        final latestGeneratedAt = latestGeneratedAt(state.recommendations);
+        final latestRecommendationAt =
+            latestGeneratedAt(state.recommendations);
         final averageScore = averageRecommendationScore(state.recommendations);
         final topGenres = topRecommendationGenres(state.recommendations);
         final scriptCommand = rebuildCommand(widget.uid);
@@ -208,9 +210,9 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    latestGeneratedAt == null
+                    latestRecommendationAt == null
                         ? 'Последний пересчет: нет данных'
-                        : 'Последний пересчет: ${formatDateTime(latestGeneratedAt)}',
+                        : 'Последний пересчет: ${formatDateTime(latestRecommendationAt)}',
                   ),
                   if ((state.autoRebuildMessage ?? '').isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -431,24 +433,31 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
     }
 
     final status = validationReport['status']?.toString() ?? 'unknown';
-    final message = validationReport['message']?.toString() ?? '';
+    final message = normalizePossibleMojibake(
+      validationReport['message']?.toString() ?? '',
+    );
 
     if (status != 'ok') {
-      return Text(message.isEmpty ? 'Недостаточно данных для валидации.' : message);
+      return Text(
+        message.isEmpty ? 'Недостаточно данных для валидации.' : message,
+      );
     }
 
     final heldOutTitles =
         (validationReport['heldOutTitles'] as List<dynamic>? ?? const [])
             .map((item) => item.toString())
             .toList();
-    final hitTitles = (validationReport['hitTitles'] as List<dynamic>? ?? const [])
-        .map((item) => item.toString())
-        .toList();
+    final hitTitles =
+        (validationReport['hitTitles'] as List<dynamic>? ?? const [])
+            .map((item) => item.toString())
+            .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Качество: ${validationReport['qualityLabel'] ?? 'нет данных'}'),
+        Text(
+          'Качество: ${normalizePossibleMojibake(validationReport['qualityLabel']?.toString() ?? 'нет данных')}',
+        ),
         const SizedBox(height: 8),
         Text('Precision@K: ${validationReport['precisionAtK'] ?? 0}'),
         const SizedBox(height: 8),
@@ -465,13 +474,13 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
         Text(
           heldOutTitles.isEmpty
               ? 'Скрытые фильмы: нет данных'
-              : 'Скрытые фильмы для проверки: ${heldOutTitles.join(', ')}',
+              : 'Скрытые фильмы для проверки: ${heldOutTitles.map(normalizePossibleMojibake).join(', ')}',
         ),
         const SizedBox(height: 8),
         Text(
           hitTitles.isEmpty
               ? 'Совпадений в топе нет'
-              : 'Алгоритм успешно вернул в топ: ${hitTitles.join(', ')}',
+              : 'Алгоритм успешно вернул в топ: ${hitTitles.map(normalizePossibleMojibake).join(', ')}',
         ),
       ],
     );
@@ -665,4 +674,29 @@ Future<void> copyAndNotify(
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(message)),
   );
+}
+
+String normalizePossibleMojibake(String value) {
+  if (value.isEmpty) {
+    return value;
+  }
+
+  const suspiciousFragments = [
+    'РЎ',
+    'Р',
+    'СЃ',
+    'СЂ',
+    'В°',
+    'вЂ',
+  ];
+  final looksBroken = suspiciousFragments.any(value.contains);
+  if (!looksBroken) {
+    return value;
+  }
+
+  try {
+    return utf8.decode(latin1.encode(value));
+  } catch (_) {
+    return value;
+  }
 }
