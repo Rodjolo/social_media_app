@@ -16,12 +16,25 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Get-PythonCommand {
-    if (Get-Command py -ErrorAction SilentlyContinue) {
-        return "py"
-    }
+    $candidates = @()
 
     if (Get-Command python -ErrorAction SilentlyContinue) {
-        return "python"
+        $candidates += "python"
+    }
+
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        $candidates += "py"
+    }
+
+    foreach ($candidate in $candidates) {
+        & $candidate -c "import pandas, sklearn, requests" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            return $candidate
+        }
+    }
+
+    if ($candidates.Count -gt 0) {
+        throw "Python found, but required modules are missing. Install pandas, scikit-learn, requests, and firebase-admin into the interpreter you plan to use."
     }
 
     throw "Python interpreter not found. Install Python or use the Windows py launcher."
