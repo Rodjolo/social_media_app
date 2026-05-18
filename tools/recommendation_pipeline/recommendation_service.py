@@ -2,7 +2,7 @@ import argparse
 import json
 import subprocess
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -94,6 +94,15 @@ def utc_now_iso():
     return datetime.now(tz=timezone.utc).isoformat()
 
 
+def parse_iso_datetime(value: str | None):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
 def load_report(working_dir: Path, user_id: str):
     safe_user_id = "".join(
         char if char.isalnum() or char in {"_", "-"} else "_"
@@ -140,86 +149,104 @@ def build_failure_message(stdout: str, stderr: str):
 
 
 def run_rebuild(args, store: RecommendationJobStore, user_id: str, top_n: int):
-    store.set_status(
-        user_id,
-        {
-            "userId": user_id,
-            "state": "running",
-            "isRunning": True,
-            "message": "Пересчет рекомендаций выполняется",
-            "details": "",
-            "startedAt": utc_now_iso(),
-            "finishedAt": None,
-            "exitCode": None,
-            "report": None,
-        },
-    )
+    try:
+        store.set_status(
+            user_id,
+            {
+                "userId": user_id,
+                "state": "running",
+                "isRunning": True,
+                "message": "Пересчет рекомендаций выполняется",
+                "details": "",
+                "startedAt": utc_now_iso(),
+                "finishedAt": None,
+                "exitCode": None,
+                "report": None,
+            },
+        )
 
-    command = [
-        "powershell",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        str(Path("tools/recommendation_pipeline/rebuild_recommendations.ps1")),
-        "-BaseUrl",
-        args.base_url,
-        "-SuperuserEmail",
-        args.superuser_email,
-        "-SuperuserPassword",
-        args.superuser_password,
-        "-UserId",
-        user_id,
-        "-DatasetDir",
-        args.dataset_dir,
-        "-WorkingDir",
-        args.working_dir,
-        "-TopN",
-        str(top_n),
-        "-MinimumRatings",
-        str(args.minimum_ratings),
-    ]
+        command = [
+            "powershell",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(Path("tools/recommendation_pipeline/rebuild_recommendations.ps1")),
+            "-BaseUrl",
+            args.base_url,
+            "-SuperuserEmail",
+            args.superuser_email,
+            "-SuperuserPassword",
+            args.superuser_password,
+            "-UserId",
+            user_id,
+            "-DatasetDir",
+            args.dataset_dir,
+            "-WorkingDir",
+            args.working_dir,
+            "-TopN",
+            str(top_n),
+            "-MinimumRatings",
+            str(args.minimum_ratings),
+        ]
 
-    result = subprocess.run(
-        command,
-        cwd=Path(__file__).resolve().parents[2],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+        result = subprocess.run(
+            command,
+            cwd=Path(__file__).resolve().parents[2],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
 
-    report = load_report(Path(args.working_dir), user_id)
-    stdout = (result.stdout or "").strip()
-    stderr = (result.stderr or "").strip()
+        report = load_report(Path(args.working_dir), user_id)
+        stdout = (result.stdout or "").strip()
+        stderr = (result.stderr or "").strip()
 
-    if result.returncode == 0:
-        lines = clean_command_output(stdout)
-        message = lines[-1] if lines else "Пересчет завершен"
-        details = " | ".join(lines[-4:])
-    else:
-        message, details = build_failure_message(stdout, stderr)
+        if result.returncode == 0:
+            lines = clean_command_output(stdout)
+            message = lines[-1] if lines else "Пересчет завершен"
+            details = " | ".join(lines[-4:])
+        else:
+            message, details = build_failure_message(stdout, stderr)
 
-    previous_status = store.get_status(user_id) or {}
-    store.set_status(
-        user_id,
-        {
-            "userId": user_id,
-            "state": "completed" if result.returncode == 0 else "failed",
-            "isRunning": False,
-            "message": message,
-            "details": details,
-            "startedAt": previous_status.get("startedAt"),
-            "finishedAt": utc_now_iso(),
-            "exitCode": result.returncode,
-            "report": report,
-        },
-    )
+        previous_status = store.get_status(user_id) or {}
+        store.set_status(
+            user_id,
+            {
+                "userId": user_id,
+                "state": "completed" if result.returncode == 0 else "failed",
+                "isRunning": False,
+                "message": message,
+                "details": details,
+                "startedAt": previous_status.get("startedAt"),
+                "finishedAt": utc_now_iso(),
+                "exitCode": result.returncode,
+                "report": report,
+            },
+        )
+    except Exception as error:  # pragma: no cover
+        previous_status = store.get_status(user_id) or {}
+        store.set_status(
+            user_id,
+            {
+                "userId": user_id,
+                "state": "failed",
+                "isRunning": False,
+                "message": "Внутренняя ошибка локального сервиса пересчета",
+                "details": str(error),
+                "startedAt": previous_status.get("startedAt"),
+                "finishedAt": utc_now_iso(),
+                "exitCode": -1,
+                "report": None,
+            },
+        )
 
 
 class RecommendationServiceHandler(BaseHTTPRequestHandler):
     service_args = None
     store = None
+    running_timeout = timedelta(minutes=10)
 
     def _send_json(self, status_code: int, payload: dict[str, Any]):
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -287,12 +314,37 @@ class RecommendationServiceHandler(BaseHTTPRequestHandler):
             return
 
         existing = self.store.get_status(user_id)
+        is_stale = False
         if existing and existing.get("isRunning") is True:
+            started_at = parse_iso_datetime(existing.get("startedAt"))
+            if started_at is not None:
+                is_stale = (
+                    datetime.now(tz=timezone.utc) - started_at
+                    > self.running_timeout
+                )
+
+        if existing and existing.get("isRunning") is True and not is_stale:
             self._send_json(
                 HTTPStatus.CONFLICT,
                 {"message": "Rebuild is already running for this user"},
             )
             return
+
+        if existing and existing.get("isRunning") is True and is_stale:
+            self.store.set_status(
+                user_id,
+                {
+                    "userId": user_id,
+                    "state": "failed",
+                    "isRunning": False,
+                    "message": "Предыдущий пересчет считался зависшим и был сброшен",
+                    "details": "Stale running status was automatically reset before a new rebuild.",
+                    "startedAt": existing.get("startedAt"),
+                    "finishedAt": utc_now_iso(),
+                    "exitCode": -2,
+                    "report": existing.get("report"),
+                },
+            )
 
         thread = threading.Thread(
             target=run_rebuild,
