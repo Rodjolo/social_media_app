@@ -102,7 +102,7 @@ def load_report(working_dir: Path, user_id: str):
     path = working_dir / f"recommendation_report_{safe_user_id}.json"
     if not path.exists():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def verify_pocketbase_credentials(base_url: str, email: str, password: str):
