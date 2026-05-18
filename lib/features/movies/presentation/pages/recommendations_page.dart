@@ -96,6 +96,17 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                                 ? 'Рекомендации пока не рассчитаны.'
                                 : 'Найдено рекомендаций: ${state.recommendations.length}',
                           ),
+                          if ((state.autoRebuildMessage ?? '').isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              state.autoRebuildMessage!,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                          if (state.isAutoRebuilding) ...[
+                            const SizedBox(height: 12),
+                            const LinearProgressIndicator(),
+                          ],
                           if (isAdmin) ...[
                             const SizedBox(height: 12),
                             Align(
@@ -103,7 +114,8 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                               child: OutlinedButton.icon(
                                 onPressed: _openAdminPanel,
                                 icon: const Icon(Icons.terminal),
-                                label: const Text('Открыть панель пересчета'),
+                                label:
+                                    const Text('Открыть панель пересчета'),
                               ),
                             ),
                           ],
@@ -119,7 +131,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                       child: Padding(
                         padding: EdgeInsets.all(16),
                         child: Text(
-                          'Сначала оцените фильмы, затем выполните пересчет рекомендаций через PowerShell-скрипт.',
+                          'Сначала оцените фильмы. Если локальный сервис пересчета запущен, рекомендации будут автоматически обновляться после новых оценок.',
                         ),
                       ),
                     ),

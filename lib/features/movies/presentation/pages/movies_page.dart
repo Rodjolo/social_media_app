@@ -46,7 +46,8 @@ class _MoviesPageState extends State<MoviesPage> {
             if (state.movies.isEmpty) {
               return const Center(
                 child: Text(
-                    'Фильмы не найдены. Загрузите данные в коллекцию movies.'),
+                  'Фильмы не найдены. Загрузите данные в коллекцию movies.',
+                ),
               );
             }
 
@@ -60,12 +61,37 @@ class _MoviesPageState extends State<MoviesPage> {
                       'Оцените как минимум 15 фильмов, чтобы сформировать профиль предпочтений.',
                     ),
                   ),
+                  if ((state.autoRebuildMessage ?? '').isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Card(
+                        color: state.isAutoRebuilding
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : null,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                state.isAutoRebuilding
+                                    ? Icons.autorenew
+                                    : Icons.info_outline,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(state.autoRebuildMessage!),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ...state.movies.map(
                     (movie) => MovieCard(
                       movie: movie,
                       userRating: state.ratingsByMovieId[movie.id],
-                      onRatingSelected: (rating) =>
-                          movieCubit.saveMovieFeedback(
+                      onRatingSelected: (rating) => movieCubit.saveMovieFeedback(
                         uid: uid,
                         movie: movie,
                         rating: rating,

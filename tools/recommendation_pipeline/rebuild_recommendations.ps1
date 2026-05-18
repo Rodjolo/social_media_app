@@ -27,6 +27,42 @@ function Get-PythonCommand {
     throw "Python interpreter not found. Install Python or use the Windows py launcher."
 }
 
+function Merge-Reports {
+    param(
+        [string]$ComparisonReportPath,
+        [string]$ValidationReportPath,
+        [string]$OutputPath,
+        [int]$RatingCount,
+        [int]$TopN
+    )
+
+    $comparison = $null
+    $validation = $null
+
+    if (Test-Path $ComparisonReportPath) {
+        $comparison = Get-Content -Path $ComparisonReportPath -Raw | ConvertFrom-Json
+    }
+
+    if (Test-Path $ValidationReportPath) {
+        $validation = Get-Content -Path $ValidationReportPath -Raw | ConvertFrom-Json
+    }
+
+    $summary = [ordered]@{
+        ratingCount = $RatingCount
+        topN = $TopN
+        validationStatus = if ($null -ne $validation) { $validation.status } else { "missing" }
+        qualityLabel = if ($null -ne $validation) { $validation.qualityLabel } else { $null }
+    }
+
+    $report = [ordered]@{
+        summary = $summary
+        comparison = $comparison
+        validation = $validation
+    }
+
+    $report | ConvertTo-Json -Depth 10 | Set-Content -Path $OutputPath -Encoding UTF8
+}
+
 if (-not (Test-Path $WorkingDir)) {
     New-Item -ItemType Directory -Path $WorkingDir | Out-Null
 }
@@ -36,7 +72,9 @@ $safeUserId = $UserId -replace '[^a-zA-Z0-9_-]', '_'
 $ratingsFile = Join-Path $WorkingDir "user_ratings_${safeUserId}.json"
 $previousRecommendationsFile = Join-Path $WorkingDir "recommendations_${safeUserId}_previous.json"
 $recommendationsFile = Join-Path $WorkingDir "recommendations_${safeUserId}.json"
-$comparisonReportFile = Join-Path $WorkingDir "recommendation_report_${safeUserId}.json"
+$comparisonReportFile = Join-Path $WorkingDir "recommendation_comparison_${safeUserId}.json"
+$validationReportFile = Join-Path $WorkingDir "recommendation_validation_${safeUserId}.json"
+$finalReportFile = Join-Path $WorkingDir "recommendation_report_${safeUserId}.json"
 
 Write-Host "Step 1/4: Exporting user ratings from PocketBase..."
 & $pythonCommand .\tools\recommendation_pipeline\pocketbase_export_ratings.py `
@@ -62,7 +100,7 @@ if ($ratingCount -lt $MinimumRatings) {
     Write-Warning "The user has fewer than $MinimumRatings ratings. Recommendations may be weak."
 }
 
-Write-Host "Step 2/4: Computing recommendations from MovieLens..."
+Write-Host "Step 2/4: Computing recommendations and validation metrics..."
 if (Test-Path $recommendationsFile) {
     Copy-Item -Path $recommendationsFile -Destination $previousRecommendationsFile -Force
 }
@@ -72,6 +110,7 @@ if (Test-Path $recommendationsFile) {
     --user-id $UserId `
     --user-ratings-file $ratingsFile `
     --output-file $recommendationsFile `
+    --validation-output-file $validationReportFile `
     --top-n $TopN
 
 if ($LASTEXITCODE -ne 0) {
@@ -93,6 +132,26 @@ if (Test-Path $previousRecommendationsFile) {
         Write-Host "  New movie ids:            $($report.newMovieIds -join ', ')"
     }
 }
+
+if (Test-Path $validationReportFile) {
+    $validation = Get-Content -Path $validationReportFile -Raw | ConvertFrom-Json
+    Write-Host "Validation summary:"
+    Write-Host "  Status:        $($validation.status)"
+    if ($validation.status -eq "ok") {
+        Write-Host "  Precision@K:   $($validation.precisionAtK)"
+        Write-Host "  Recall@K:      $($validation.recallAtK)"
+        Write-Host "  HitRate@K:     $($validation.hitRateAtK)"
+        Write-Host "  nDCG@K:        $($validation.ndcgAtK)"
+        Write-Host "  Quality label: $($validation.qualityLabel)"
+    }
+}
+
+Merge-Reports `
+    -ComparisonReportPath $comparisonReportFile `
+    -ValidationReportPath $validationReportFile `
+    -OutputPath $finalReportFile `
+    -RatingCount $ratingCount `
+    -TopN $TopN
 
 Write-Host "Step 3/4: Importing recommendations into PocketBase..."
 & $pythonCommand .\tools\recommendation_pipeline\pocketbase_import_json.py `
@@ -118,7 +177,8 @@ if (-not $SkipMetadataSync) {
     if ($LASTEXITCODE -ne 0) {
         throw "Recommendation metadata sync failed."
     }
-} else {
+}
+else {
     Write-Host "Step 4/4: Metadata sync skipped."
 }
 

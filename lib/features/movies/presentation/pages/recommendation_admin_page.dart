@@ -31,15 +31,15 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
   late final MovieCubit movieCubit = context.read<MovieCubit>();
   late final bool isAdmin =
       context.read<AuthCubit>().currentUser?.isAdmin ?? false;
-  late final RecommendationServiceClient _serviceClient =
+  late final RecommendationServiceClient serviceClient =
       RecommendationServiceClient();
 
-  RecommendationRebuildStatus? _serviceStatus;
-  bool _serviceHealthy = false;
-  bool _serviceLoading = false;
-  bool _serviceBusy = false;
-  DateTime? _lastAppliedFinishedAt;
-  Timer? _pollTimer;
+  RecommendationRebuildStatus? serviceStatus;
+  bool serviceHealthy = false;
+  bool serviceLoading = false;
+  bool serviceBusy = false;
+  DateTime? lastAppliedFinishedAt;
+  Timer? pollTimer;
 
   @override
   void initState() {
@@ -53,34 +53,34 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
       movieCubit.loadRecommendationsScreen(widget.uid);
     }
 
-    _refreshServiceState();
-    _pollTimer = Timer.periodic(
+    refreshServiceState();
+    pollTimer = Timer.periodic(
       const Duration(seconds: 5),
-      (_) => _refreshServiceState(silent: true),
+      (_) => refreshServiceState(silent: true),
     );
   }
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
-    _serviceClient.dispose();
+    pollTimer?.cancel();
+    serviceClient.dispose();
     super.dispose();
   }
 
-  Future<void> _refreshServiceState({bool silent = false}) async {
-    if (_serviceBusy) {
+  Future<void> refreshServiceState({bool silent = false}) async {
+    if (serviceBusy) {
       return;
     }
 
     if (!silent && mounted) {
-      setState(() => _serviceLoading = true);
+      setState(() => serviceLoading = true);
     }
 
     try {
-      final healthy = await _serviceClient.isHealthy();
+      final healthy = await serviceClient.isHealthy();
       RecommendationRebuildStatus? status;
       if (healthy) {
-        status = await _serviceClient.fetchStatus(widget.uid);
+        status = await serviceClient.fetchStatus(widget.uid);
       }
 
       if (!mounted) {
@@ -88,55 +88,57 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
       }
 
       setState(() {
-        _serviceHealthy = healthy;
-        _serviceStatus = status;
+        serviceHealthy = healthy;
+        serviceStatus = status;
       });
 
       final shouldRefreshRecommendations = status != null &&
           status.state == 'completed' &&
           status.finishedAt != null &&
-          status.finishedAt != _lastAppliedFinishedAt;
+          status.finishedAt != lastAppliedFinishedAt;
       if (shouldRefreshRecommendations) {
-        _lastAppliedFinishedAt = status!.finishedAt;
-        movieCubit.loadRecommendationsScreen(widget.uid);
+        lastAppliedFinishedAt = status!.finishedAt;
+        await movieCubit.loadRecommendationsScreen(widget.uid);
       }
     } catch (_) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _serviceHealthy = false;
+        serviceHealthy = false;
       });
     } finally {
       if (mounted && !silent) {
-        setState(() => _serviceLoading = false);
+        setState(() => serviceLoading = false);
       }
     }
   }
 
-  Future<void> _triggerRebuild() async {
-    setState(() => _serviceBusy = true);
+  Future<void> triggerRebuild() async {
+    setState(() => serviceBusy = true);
     try {
-      await _serviceClient.triggerRebuild(userId: widget.uid);
+      await serviceClient.triggerRebuild(userId: widget.uid);
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Пересчет запущен через локальный сервис'),
+          content: Text('Пересчет рекомендаций запущен через локальный сервис.'),
         ),
       );
-      await _refreshServiceState();
-    } catch (e) {
+      await refreshServiceState();
+    } catch (error) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось запустить пересчет: $e')),
+        SnackBar(
+          content: Text('Не удалось запустить пересчет: $error'),
+        ),
       );
     } finally {
       if (mounted) {
-        setState(() => _serviceBusy = false);
+        setState(() => serviceBusy = false);
       }
     }
   }
@@ -151,18 +153,18 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
             IconButton(
               tooltip: 'Обновить',
               onPressed: () async {
-                await _refreshServiceState();
+                await refreshServiceState();
                 await movieCubit.loadRecommendationsScreen(widget.uid);
               },
               icon: const Icon(Icons.refresh),
             ),
         ],
       ),
-      body: isAdmin ? _buildAdminBody(context) : _buildAccessDenied(),
+      body: isAdmin ? buildAdminBody(context) : buildAccessDenied(),
     );
   }
 
-  Widget _buildAdminBody(BuildContext context) {
+  Widget buildAdminBody(BuildContext context) {
     return BlocBuilder<MovieCubit, MovieState>(
       builder: (context, state) {
         if (state is MovieLoading || state is MovieInitial) {
@@ -178,16 +180,19 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
         }
 
         final ratingCount = state.ratingsByMovieId.length;
-        final latestGeneratedAt = _latestGeneratedAt(state.recommendations);
+        final latestGeneratedAt = latestGeneratedAt(state.recommendations);
         final averageScore = averageRecommendationScore(state.recommendations);
         final topGenres = topRecommendationGenres(state.recommendations);
-        final scriptCommand = _rebuildCommand(widget.uid);
-        final serviceCommand = _serviceCommand();
+        final scriptCommand = rebuildCommand(widget.uid);
+        final serviceCommand = buildServiceCommand();
+        final report = serviceStatus?.report;
+        final comparisonReport = report?['comparison'] as Map<String, dynamic>?;
+        final validationReport = report?['validation'] as Map<String, dynamic>?;
 
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _StatusCard(
+            StatusCard(
               title: 'Статус данных',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,52 +210,50 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                   Text(
                     latestGeneratedAt == null
                         ? 'Последний пересчет: нет данных'
-                        : 'Последний пересчет: ${_formatDateTime(latestGeneratedAt)}',
+                        : 'Последний пересчет: ${formatDateTime(latestGeneratedAt)}',
                   ),
+                  if ((state.autoRebuildMessage ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(state.autoRebuildMessage!),
+                  ],
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            _StatusCard(
+            StatusCard(
               title: 'Локальный сервис пересчета',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _serviceHealthy
+                    serviceHealthy
                         ? 'Сервис доступен: ${BackendConfig.recommendationServiceUrl}'
                         : 'Сервис недоступен. Сначала запустите его на компьютере.',
                   ),
-                  if (_serviceStatus != null) ...[
+                  if (serviceStatus != null) ...[
                     const SizedBox(height: 8),
-                    Text('Состояние: ${_serviceStateLabel(_serviceStatus!)}'),
-                    if ((_serviceStatus?.message ?? '').isNotEmpty) ...[
+                    Text('Состояние: ${serviceStateLabel(serviceStatus!)}'),
+                    if ((serviceStatus?.message ?? '').isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Text('Сообщение: ${_serviceStatus!.message}'),
+                      Text('Сообщение: ${serviceStatus!.message}'),
                     ],
-                    if ((_serviceStatus?.details ?? '').isNotEmpty) ...[
+                    if ((serviceStatus?.details ?? '').isNotEmpty) ...[
                       const SizedBox(height: 8),
                       SelectableText(
-                        'Детали: ${_serviceStatus!.details}',
+                        'Детали: ${serviceStatus!.details}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
-                    if (_serviceStatus?.startedAt != null) ...[
+                    if (serviceStatus?.startedAt != null) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Запущено: ${_formatDateTime(_serviceStatus!.startedAt!)}',
+                        'Запущено: ${formatDateTime(serviceStatus!.startedAt!)}',
                       ),
                     ],
-                    if (_serviceStatus?.finishedAt != null) ...[
+                    if (serviceStatus?.finishedAt != null) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Завершено: ${_formatDateTime(_serviceStatus!.finishedAt!)}',
-                      ),
-                    ],
-                    if (_serviceStatus?.report != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        _buildComparisonSummary(_serviceStatus!.report!),
+                        'Завершено: ${formatDateTime(serviceStatus!.finishedAt!)}',
                       ),
                     ],
                   ],
@@ -260,19 +263,19 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                     runSpacing: 8,
                     children: [
                       FilledButton.icon(
-                        onPressed: (!_serviceHealthy ||
-                                _serviceBusy ||
-                                _serviceLoading ||
+                        onPressed: (!serviceHealthy ||
+                                serviceBusy ||
+                                serviceLoading ||
                                 ratingCount < _minimumRatingsForStart)
                             ? null
-                            : _triggerRebuild,
+                            : triggerRebuild,
                         icon: const Icon(Icons.auto_fix_high),
                         label: Text(
-                          _serviceBusy ? 'Запуск...' : 'Сформировать рекомендации',
+                          serviceBusy ? 'Запуск...' : 'Сформировать рекомендации',
                         ),
                       ),
                       OutlinedButton.icon(
-                        onPressed: _serviceLoading ? null : _refreshServiceState,
+                        onPressed: serviceLoading ? null : refreshServiceState,
                         icon: const Icon(Icons.sync),
                         label: const Text('Проверить статус'),
                       ),
@@ -282,7 +285,7 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
               ),
             ),
             const SizedBox(height: 12),
-            _StatusCard(
+            StatusCard(
               title: 'Краткая аналитика',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,41 +300,50 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                         : 'Доминирующие жанры: ${topGenres.join(', ')}',
                   ),
                   const SizedBox(height: 8),
-                  Text('Сила профиля: ${_profileStrengthLabel(ratingCount)}'),
+                  Text('Сила профиля: ${profileStrengthLabel(ratingCount)}'),
                   const SizedBox(height: 12),
                   Text(
-                    _qualityAssessmentText(
+                    qualityAssessmentText(
                       state.recommendations.length,
                       ratingCount,
                     ),
                   ),
+                  if (comparisonReport != null) ...[
+                    const SizedBox(height: 12),
+                    Text(buildComparisonSummary(comparisonReport)),
+                  ],
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            _StatusCard(
+            StatusCard(
+              title: 'Валидация качества',
+              child: buildValidationSection(validationReport),
+            ),
+            const SizedBox(height: 12),
+            StatusCard(
               title: 'Готовность к пересчету',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ThresholdRow(
+                  ThresholdRow(
                     label: 'Минимум для старта',
                     current: ratingCount,
                     target: _minimumRatingsForStart,
                   ),
                   const SizedBox(height: 8),
-                  _ThresholdRow(
+                  ThresholdRow(
                     label: 'Рекомендуемый минимум',
                     current: ratingCount,
                     target: _recommendedRatingsForQuality,
                   ),
                   const SizedBox(height: 12),
-                  Text(_buildRecommendationHint(ratingCount)),
+                  Text(buildRecommendationHint(ratingCount)),
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            _StatusCard(
+            StatusCard(
               title: 'Как это работает',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,19 +357,19 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'MovieLens выбран как открытый исследовательский датасет с большим количеством оценок и удобной структурой для построения рекомендаций.',
+                    'Качество оценивается через holdout-валидацию: часть высоких оценок временно скрывается, и мы проверяем, возвращает ли алгоритм эти фильмы в топ рекомендаций.',
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            _StatusCard(
+            StatusCard(
               title: 'Запуск сервиса и ручной fallback',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Для дипломной демонстрации можно один раз запустить локальный сервис на компьютере, а дальше запускать пересчет прямо из приложения.',
+                    'Для демонстрации можно запустить локальный сервис один раз на компьютере, а дальше пересчитывать рекомендации прямо из приложения.',
                   ),
                   const SizedBox(height: 12),
                   SelectableText(
@@ -368,7 +380,7 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Если сервис не запущен, остается доступен ручной сценарий через PowerShell-скрипт:',
+                    'Если сервис не запущен, остается ручной сценарий через PowerShell-скрипт:',
                   ),
                   const SizedBox(height: 12),
                   SelectableText(
@@ -383,19 +395,19 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
                     runSpacing: 8,
                     children: [
                       FilledButton.icon(
-                        onPressed: () => _copyAndNotify(
+                        onPressed: () => copyAndNotify(
                           context,
                           text: serviceCommand,
-                          message: 'Команда запуска сервиса скопирована',
+                          message: 'Команда запуска сервиса скопирована.',
                         ),
                         icon: const Icon(Icons.memory),
                         label: const Text('Скопировать команду сервиса'),
                       ),
                       OutlinedButton.icon(
-                        onPressed: () => _copyAndNotify(
+                        onPressed: () => copyAndNotify(
                           context,
                           text: scriptCommand,
-                          message: 'Команда скрипта скопирована',
+                          message: 'Команда fallback-скрипта скопирована.',
                         ),
                         icon: const Icon(Icons.copy),
                         label: const Text('Скопировать fallback-команду'),
@@ -411,7 +423,61 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
     );
   }
 
-  Widget _buildAccessDenied() {
+  Widget buildValidationSection(Map<String, dynamic>? validationReport) {
+    if (validationReport == null) {
+      return const Text(
+        'После следующего пересчета здесь появятся метрики качества рекомендаций.',
+      );
+    }
+
+    final status = validationReport['status']?.toString() ?? 'unknown';
+    final message = validationReport['message']?.toString() ?? '';
+
+    if (status != 'ok') {
+      return Text(message.isEmpty ? 'Недостаточно данных для валидации.' : message);
+    }
+
+    final heldOutTitles =
+        (validationReport['heldOutTitles'] as List<dynamic>? ?? const [])
+            .map((item) => item.toString())
+            .toList();
+    final hitTitles = (validationReport['hitTitles'] as List<dynamic>? ?? const [])
+        .map((item) => item.toString())
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Качество: ${validationReport['qualityLabel'] ?? 'нет данных'}'),
+        const SizedBox(height: 8),
+        Text('Precision@K: ${validationReport['precisionAtK'] ?? 0}'),
+        const SizedBox(height: 8),
+        Text('Recall@K: ${validationReport['recallAtK'] ?? 0}'),
+        const SizedBox(height: 8),
+        Text('HitRate@K: ${validationReport['hitRateAtK'] ?? 0}'),
+        const SizedBox(height: 8),
+        Text('nDCG@K: ${validationReport['ndcgAtK'] ?? 0}'),
+        const SizedBox(height: 8),
+        Text('Контрольных фильмов: ${validationReport['holdoutCount'] ?? 0}'),
+        const SizedBox(height: 12),
+        Text(message),
+        const SizedBox(height: 12),
+        Text(
+          heldOutTitles.isEmpty
+              ? 'Скрытые фильмы: нет данных'
+              : 'Скрытые фильмы для проверки: ${heldOutTitles.join(', ')}',
+        ),
+        const SizedBox(height: 8),
+        Text(
+          hitTitles.isEmpty
+              ? 'Совпадений в топе нет'
+              : 'Алгоритм успешно вернул в топ: ${hitTitles.join(', ')}',
+        ),
+      ],
+    );
+  }
+
+  Widget buildAccessDenied() {
     return const Center(
       child: Padding(
         padding: EdgeInsets.all(24),
@@ -431,11 +497,12 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
   }
 }
 
-class _StatusCard extends StatelessWidget {
+class StatusCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _StatusCard({
+  const StatusCard({
+    super.key,
     required this.title,
     required this.child,
   });
@@ -461,12 +528,13 @@ class _StatusCard extends StatelessWidget {
   }
 }
 
-class _ThresholdRow extends StatelessWidget {
+class ThresholdRow extends StatelessWidget {
   final String label;
   final int current;
   final int target;
 
-  const _ThresholdRow({
+  const ThresholdRow({
+    super.key,
     required this.label,
     required this.current,
     required this.target,
@@ -491,7 +559,7 @@ class _ThresholdRow extends StatelessWidget {
   }
 }
 
-DateTime? _latestGeneratedAt(List<RecommendationItem> recommendations) {
+DateTime? latestGeneratedAt(List<RecommendationItem> recommendations) {
   if (recommendations.isEmpty) {
     return null;
   }
@@ -501,9 +569,9 @@ DateTime? _latestGeneratedAt(List<RecommendationItem> recommendations) {
       .reduce((current, next) => current.isAfter(next) ? current : next);
 }
 
-String _buildRecommendationHint(int ratingCount) {
+String buildRecommendationHint(int ratingCount) {
   if (ratingCount < _minimumRatingsForStart) {
-    return 'Пока оценок слишком мало. Сначала оцените хотя бы 5 фильмов, иначе рекомендации будут слишком слабыми.';
+    return 'Пока оценок слишком мало. Сначала оцените хотя бы 5 фильмов, иначе рекомендации будут слабыми.';
   }
 
   if (ratingCount < _recommendedRatingsForQuality) {
@@ -513,7 +581,7 @@ String _buildRecommendationHint(int ratingCount) {
   return 'Оценок достаточно. Можно пересчитывать рекомендации, качество персонализации должно быть хорошим.';
 }
 
-String _profileStrengthLabel(int ratingCount) {
+String profileStrengthLabel(int ratingCount) {
   if (ratingCount < _minimumRatingsForStart) {
     return 'слабый';
   }
@@ -523,9 +591,9 @@ String _profileStrengthLabel(int ratingCount) {
   return 'хороший';
 }
 
-String _qualityAssessmentText(int recommendationCount, int ratingCount) {
+String qualityAssessmentText(int recommendationCount, int ratingCount) {
   if (recommendationCount == 0) {
-    return 'Пока система не построила рекомендации. Для демонстрации диплома нужно сначала оценить фильмы и выполнить пересчет.';
+    return 'Пока система не построила рекомендации. Для демонстрации сначала оцените фильмы и запустите пересчет.';
   }
   if (ratingCount < _recommendedRatingsForQuality) {
     return 'Подборка уже сформирована, но после дополнительных оценок топ рекомендаций, скорее всего, заметно изменится.';
@@ -533,7 +601,7 @@ String _qualityAssessmentText(int recommendationCount, int ratingCount) {
   return 'Подборка выглядит устойчивой: профиль пользователя уже достаточно заполнен, поэтому рекомендации можно считать качественными для демонстрации.';
 }
 
-String _formatDateTime(DateTime value) {
+String formatDateTime(DateTime value) {
   final local = value.toLocal();
   final day = local.day.toString().padLeft(2, '0');
   final month = local.month.toString().padLeft(2, '0');
@@ -543,7 +611,7 @@ String _formatDateTime(DateTime value) {
   return '$day.$month.$year $hour:$minute';
 }
 
-String _serviceStateLabel(RecommendationRebuildStatus status) {
+String serviceStateLabel(RecommendationRebuildStatus status) {
   switch (status.state) {
     case 'running':
       return 'идет пересчет';
@@ -556,13 +624,14 @@ String _serviceStateLabel(RecommendationRebuildStatus status) {
   }
 }
 
-String _buildComparisonSummary(Map<String, dynamic> report) {
-  final overlapRatio = report['overlapRatio']?.toString() ?? '0';
-  final newMovieIds = (report['newMovieIds'] as List<dynamic>? ?? const [])
-      .map((item) => item.toString())
-      .toList();
+String buildComparisonSummary(Map<String, dynamic> comparisonReport) {
+  final overlapRatio = comparisonReport['overlapRatio']?.toString() ?? '0';
+  final newMovieIds =
+      (comparisonReport['newMovieIds'] as List<dynamic>? ?? const [])
+          .map((item) => item.toString())
+          .toList();
   final currentTopGenres =
-      (report['currentTopGenres'] as List<dynamic>? ?? const [])
+      (comparisonReport['currentTopGenres'] as List<dynamic>? ?? const [])
           .map((item) => item.toString())
           .toList();
 
@@ -571,20 +640,20 @@ String _buildComparisonSummary(Map<String, dynamic> report) {
       'топ жанры = ${currentTopGenres.isEmpty ? 'нет данных' : currentTopGenres.join(', ')}.';
 }
 
-String _rebuildCommand(String uid) {
-  return '.\\tools\\recommendation_pipeline\\rebuild_recommendations.ps1 `\n'
+String rebuildCommand(String uid) {
+  return 'py .\\tools\\recommendation_pipeline\\rebuild_recommendations.ps1 `\n'
       '  -SuperuserEmail "admin@example.com" `\n'
       '  -SuperuserPassword "your_password" `\n'
       '  -UserId "$uid"';
 }
 
-String _serviceCommand() {
-  return 'python .\\tools\\recommendation_pipeline\\recommendation_service.py `\n'
+String buildServiceCommand() {
+  return 'py .\\tools\\recommendation_pipeline\\recommendation_service.py `\n'
       '  --superuser-email "admin@example.com" `\n'
       '  --superuser-password "your_password"';
 }
 
-Future<void> _copyAndNotify(
+Future<void> copyAndNotify(
   BuildContext context, {
   required String text,
   required String message,
