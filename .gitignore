@@ -41,8 +41,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/app/.cxx/
 
 # Local datasets, Firebase service accounts, and generated recommendation files
 /assets/db/*.json
 /assets/db/*.csv
 /assets/db/ml-latest-small/
+/assets/db/generated/

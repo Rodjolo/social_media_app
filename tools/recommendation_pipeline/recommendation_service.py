@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import subprocess
 import threading
 from datetime import datetime, timedelta, timezone
@@ -15,7 +16,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Локальный HTTP-сервис для пересчета рекомендаций.",
     )
-    parser.add_argument("--host", default="0.0.0.0", help="Адрес привязки.")
+    parser.add_argument("--host", default="127.0.0.1", help="Адрес привязки.")
     parser.add_argument("--port", type=int, default=8091, help="Порт сервиса.")
     parser.add_argument(
         "--base-url",
@@ -53,6 +54,14 @@ def parse_args():
         type=int,
         default=5,
         help="Минимальный порог оценок для предупреждения.",
+    )
+    parser.add_argument(
+        "--api-token",
+        default=os.getenv(
+            "RECOMMENDATION_SERVICE_TOKEN",
+            "local-recommendation-service",
+        ),
+        help="Shared token required for /status and /rebuild requests.",
     )
     return parser.parse_args()
 
@@ -259,12 +268,30 @@ class RecommendationServiceHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
 
+    def _is_authorized(self):
+        expected_token = (self.service_args.api_token or "").strip()
+        if not expected_token:
+            return True
+
+        provided_token = self.headers.get(
+            "X-Recommendation-Service-Token",
+            "",
+        ).strip()
+        return provided_token == expected_token
+
     def do_GET(self):
         if self.path.startswith("/health"):
             self._send_json(HTTPStatus.OK, {"ok": True})
             return
 
         if self.path.startswith("/status"):
+            if not self._is_authorized():
+                self._send_json(
+                    HTTPStatus.UNAUTHORIZED,
+                    {"message": "Unauthorized"},
+                )
+                return
+
             user_id = ""
             if "?" in self.path:
                 query = self.path.split("?", maxsplit=1)[1]
@@ -298,6 +325,13 @@ class RecommendationServiceHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path != "/rebuild":
             self._send_json(HTTPStatus.NOT_FOUND, {"message": "Not found"})
+            return
+
+        if not self._is_authorized():
+            self._send_json(
+                HTTPStatus.UNAUTHORIZED,
+                {"message": "Unauthorized"},
+            )
             return
 
         content_length = int(self.headers.get("Content-Length", "0"))

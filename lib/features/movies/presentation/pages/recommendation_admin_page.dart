@@ -898,7 +898,7 @@ String buildComparisonSummary(Map<String, dynamic> comparisonReport) {
 }
 
 String rebuildCommand(String uid) {
-  return 'py .\\tools\\recommendation_pipeline\\rebuild_recommendations.ps1 `\n'
+  return 'powershell -ExecutionPolicy Bypass -File .\\tools\\recommendation_pipeline\\rebuild_recommendations.ps1 `\n'
       '  -SuperuserEmail "admin@example.com" `\n'
       '  -SuperuserPassword "your_password" `\n'
       '  -UserId "$uid"';
@@ -907,7 +907,8 @@ String rebuildCommand(String uid) {
 String buildServiceCommand() {
   return 'py .\\tools\\recommendation_pipeline\\recommendation_service.py `\n'
       '  --superuser-email "admin@example.com" `\n'
-      '  --superuser-password "your_password"';
+      '  --superuser-password "your_password" `\n'
+      '  --api-token "local-recommendation-service"';
 }
 
 Future<void> copyAndNotify(

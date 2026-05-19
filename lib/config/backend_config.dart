@@ -10,6 +10,11 @@ class BackendConfig {
     defaultValue: 'http://10.0.2.2:8091',
   );
 
+  static const String recommendationServiceToken = String.fromEnvironment(
+    'RECOMMENDATION_SERVICE_TOKEN',
+    defaultValue: 'local-recommendation-service',
+  );
+
   static const String usersCollection = 'users';
   static const String postsCollection = 'posts';
   static const String ratingsCollection = 'ratings';

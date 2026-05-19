@@ -10,11 +10,22 @@ class RecommendationServiceClient {
   RecommendationServiceClient({http.Client? httpClient})
       : _httpClient = httpClient ?? http.Client();
 
+  Map<String, String> get _serviceHeaders {
+    final token = BackendConfig.recommendationServiceToken.trim();
+    if (token.isEmpty) {
+      return const {};
+    }
+
+    return {
+      'X-Recommendation-Service-Token': token,
+    };
+  }
+
   Future<RecommendationRebuildStatus?> fetchStatus(String userId) async {
     final uri = Uri.parse(
       '${BackendConfig.recommendationServiceUrl}/status?userId=$userId',
     );
-    final response = await _httpClient.get(uri);
+    final response = await _httpClient.get(uri, headers: _serviceHeaders);
 
     if (response.statusCode == 404) {
       return null;
@@ -36,7 +47,10 @@ class RecommendationServiceClient {
     final uri = Uri.parse('${BackendConfig.recommendationServiceUrl}/rebuild');
     final response = await _httpClient.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        ..._serviceHeaders,
+      },
       body: jsonEncode({
         'userId': userId,
         'topN': topN,
