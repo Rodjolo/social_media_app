@@ -114,24 +114,39 @@ def fetch_tmdb_movie(tmdb_id: str, headers: dict, language: str):
 
 
 def load_source_records(dataset_dir: Path, input_file: Path | None, limit: int):
+    movies_df = pd.read_csv(dataset_dir / "movies.csv")
+    canonical_titles = {
+        str(int(row["movieId"])): clean_title(str(row["title"]))
+        for _, row in movies_df.iterrows()
+    }
+    canonical_years = {
+        str(int(row["movieId"])): extract_year(str(row["title"]))
+        for _, row in movies_df.iterrows()
+    }
+
     if input_file:
         raw_records = json.loads(input_file.read_text(encoding="utf-8"))
         return [
             {
                 "movieId": str(record.get("movieId", "")),
-                "title": str(record.get("title", "")).strip(),
+                "title": canonical_titles.get(
+                    str(record.get("movieId", "")),
+                    str(record.get("title", "")).strip(),
+                ),
                 "genres": list(record.get("genres", [])),
                 "posterUrl": str(record.get("posterUrl", "")).strip(),
                 "overview": str(record.get("overview", "")).strip(),
-                "year": int(record.get("year", 0) or 0),
+                "year": canonical_years.get(
+                    str(record.get("movieId", "")),
+                    int(record.get("year", 0) or 0),
+                ),
                 "popularity": float(record.get("popularity", 0) or 0),
             }
             for record in raw_records[:limit]
         ]
 
-    movies_df = pd.read_csv(dataset_dir / "movies.csv").head(limit)
     records = []
-    for _, row in movies_df.iterrows():
+    for _, row in movies_df.head(limit).iterrows():
         title = str(row["title"])
         records.append(
             {
@@ -151,21 +166,6 @@ def extract_tmdb_year(release_date: str, fallback_year: int):
     if release_date and len(release_date) >= 4 and release_date[:4].isdigit():
         return int(release_date[:4])
     return fallback_year
-
-
-def pick_localized_title(tmdb_data: dict | None, fallback_title: str):
-    if not tmdb_data:
-        return clean_title(fallback_title)
-
-    localized_title = str(tmdb_data.get("title", "")).strip()
-    if localized_title:
-        return localized_title
-
-    original_title = str(tmdb_data.get("original_title", "")).strip()
-    if original_title:
-        return clean_title(original_title)
-
-    return clean_title(fallback_title)
 
 
 def main():
@@ -227,7 +227,6 @@ def main():
         )
         release_date = tmdb_data.get("release_date", "") if tmdb_data else ""
         year = extract_tmdb_year(release_date, record["year"])
-        localized_title = pick_localized_title(tmdb_data, title)
 
         if tmdb_data:
             enriched_count += 1
@@ -237,7 +236,7 @@ def main():
         records.append(
             {
                 "movieId": movie_id,
-                "title": localized_title,
+                "title": title,
                 "genres": genres,
                 "posterUrl": (
                     f"{poster_base_url}{poster_path}"
