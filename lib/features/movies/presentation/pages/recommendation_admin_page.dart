@@ -451,6 +451,30 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
         (validationReport['hitTitles'] as List<dynamic>? ?? const [])
             .map((item) => item.toString())
             .toList();
+    final hitTitlesAt50 =
+        (validationReport['hitTitlesAt50'] as List<dynamic>? ?? const [])
+            .map((item) => item.toString())
+            .toList();
+    final hitTitlesAt100 =
+        (validationReport['hitTitlesAt100'] as List<dynamic>? ?? const [])
+            .map((item) => item.toString())
+            .toList();
+    final recallAt50 = metricValue(validationReport, 'recallAt50');
+    final recallAt100 = metricValue(validationReport, 'recallAt100');
+    final bestRank = validationReport['bestHiddenMovieRank'];
+    final meanRank = validationReport['meanHiddenMovieRank'];
+    final meanPercentile = metricValue(
+      validationReport,
+      'meanHiddenMoviePercentile',
+    );
+    final holdoutGenreOverlap = metricValue(
+      validationReport,
+      'holdoutGenreOverlap',
+    );
+    final profileGenreOverlap = metricValue(
+      validationReport,
+      'profileGenreOverlap',
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,6 +490,38 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
         Text('HitRate@K: ${validationReport['hitRateAtK'] ?? 0}'),
         const SizedBox(height: 8),
         Text('nDCG@K: ${validationReport['ndcgAtK'] ?? 0}'),
+        if (recallAt50 != null) ...[
+          const SizedBox(height: 8),
+          Text('Recall@50: ${formatMetric(recallAt50)}'),
+        ],
+        if (recallAt100 != null) ...[
+          const SizedBox(height: 8),
+          Text('Recall@100: ${formatMetric(recallAt100)}'),
+        ],
+        if (bestRank != null) ...[
+          const SizedBox(height: 8),
+          Text('Лучший ранг скрытого фильма: $bestRank'),
+        ],
+        if (meanRank != null) ...[
+          const SizedBox(height: 8),
+          Text('Средний ранг скрытых фильмов: $meanRank'),
+        ],
+        if (meanPercentile != null) ...[
+          const SizedBox(height: 8),
+          Text('Средний процентиль ранга: ${formatPercent(meanPercentile)}'),
+        ],
+        if (holdoutGenreOverlap != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Жанровое совпадение со скрытыми: ${formatPercent(holdoutGenreOverlap)}',
+          ),
+        ],
+        if (profileGenreOverlap != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Жанровое совпадение с профилем: ${formatPercent(profileGenreOverlap)}',
+          ),
+        ],
         const SizedBox(height: 8),
         Text('Контрольных фильмов: ${validationReport['holdoutCount'] ?? 0}'),
         const SizedBox(height: 12),
@@ -482,6 +538,18 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
               ? 'Совпадений в топе нет'
               : 'Алгоритм успешно вернул в топ: ${hitTitles.map(normalizePossibleMojibake).join(', ')}',
         ),
+        if (hitTitlesAt50.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Совпадения в топ-50: ${hitTitlesAt50.map(normalizePossibleMojibake).join(', ')}',
+          ),
+        ],
+        if (hitTitlesAt100.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Совпадения в топ-100: ${hitTitlesAt100.map(normalizePossibleMojibake).join(', ')}',
+          ),
+        ],
       ],
     );
   }
@@ -504,6 +572,25 @@ class _RecommendationAdminPageState extends State<RecommendationAdminPage> {
       ),
     );
   }
+}
+
+double? metricValue(Map<String, dynamic> report, String key) {
+  final value = report[key];
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.tryParse(value?.toString() ?? '');
+}
+
+String formatMetric(double value) {
+  return value.toStringAsFixed(3).replaceFirst(RegExp(r'0+$'), '').replaceFirst(
+        RegExp(r'\.$'),
+        '',
+      );
+}
+
+String formatPercent(double value) {
+  return '${(value * 100).toStringAsFixed(1)}%';
 }
 
 String? tryDecodeWindows1251Mojibake(String value) {
