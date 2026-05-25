@@ -52,7 +52,7 @@
 
 Подробная настройка описана в:
 
-- [docs/pocketbase_setup.md](/C:/Flutter%20Projects/SocialMediaApp/social_media_app/docs/pocketbase_setup.md)
+- [настройке PocketBase](docs/pocketbase_setup.md)
 
 ## Система рекомендаций
 
@@ -68,8 +68,8 @@
 
 Подробности и команды:
 
-- [tools/recommendation_pipeline/README.md](/C:/Flutter%20Projects/SocialMediaApp/social_media_app/tools/recommendation_pipeline/README.md)
-- [docs/diploma_recommendation_system.md](/C:/Flutter%20Projects/SocialMediaApp/social_media_app/docs/diploma_recommendation_system.md)
+- [команды пайплайна рекомендаций](tools/recommendation_pipeline/README.md)
+- [описание системы рекомендаций для диплома](docs/diploma_recommendation_system.md)
 
 ## Запуск приложения
 

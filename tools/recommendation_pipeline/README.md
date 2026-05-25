@@ -174,4 +174,4 @@ python .\tools\recommendation_pipeline\recommendation_service.py `
 
 Подробное описание научной части:
 
-- [docs/diploma_recommendation_system.md](/C:/Flutter%20Projects/SocialMediaApp/social_media_app/docs/diploma_recommendation_system.md)
+- [описание системы рекомендаций для диплома](../../docs/diploma_recommendation_system.md)
