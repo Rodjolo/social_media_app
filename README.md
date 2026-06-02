@@ -53,6 +53,8 @@
 Подробная настройка описана в:
 
 - [настройке PocketBase](docs/pocketbase_setup.md)
+- [схеме архитектуры и БД](docs/architecture_schema.md)
+- [схеме сбора данных](docs/data_collection_schema.md)
 
 ## Система рекомендаций
 
@@ -86,6 +88,15 @@ flutter run
 
 ```powershell
 flutter run --dart-define=POCKETBASE_URL=http://10.0.2.2:8090
+```
+
+Если используется локальный сервис пересчета рекомендаций, токен приложения и сервиса должен совпадать:
+
+```powershell
+flutter run `
+  --dart-define=POCKETBASE_URL=http://10.0.2.2:8090 `
+  --dart-define=RECOMMENDATION_SERVICE_URL=http://10.0.2.2:8091 `
+  --dart-define=RECOMMENDATION_SERVICE_TOKEN=local-recommendation-service
 ```
 
 ## Запуск PocketBase

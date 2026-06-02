@@ -55,7 +55,7 @@ python .\tools\recommendation_pipeline\enrich_movies_with_tmdb.py `
 
 Что заполняется:
 
-- русское название;
+- английское название из MovieLens сохраняется как основное;
 - описание;
 - жанры;
 - постер;
@@ -135,12 +135,16 @@ python .\tools\recommendation_pipeline\pocketbase_import_json.py `
 ```powershell
 python .\tools\recommendation_pipeline\recommendation_service.py `
   --superuser-email "admin@example.com" `
-  --superuser-password "your_password"
+  --superuser-password "your_password" `
+  --api-token "local-recommendation-service"
 ```
 
 Важно:
 
 - если логин или пароль superuser неверные, сервис теперь не стартует сразу и покажет понятную ошибку;
+- по умолчанию сервис слушает только `127.0.0.1`;
+- `/status` и `/rebuild` требуют заголовок `X-Recommendation-Service-Token`;
+- значение `--api-token` должно совпадать с `RECOMMENDATION_SERVICE_TOKEN` во Flutter;
 - после обновления этого файла сервис нужно перезапустить вручную.
 
 По умолчанию сервис работает на:
@@ -150,9 +154,15 @@ python .\tools\recommendation_pipeline\recommendation_service.py `
 
 Доступные endpoint:
 
-- `GET /health`
-- `GET /status?userId=...`
-- `POST /rebuild`
+- `GET /health` — без токена;
+- `GET /status?userId=...` — с токеном;
+- `POST /rebuild` — с токеном.
+
+Пример заголовка:
+
+```text
+X-Recommendation-Service-Token: local-recommendation-service
+```
 
 Пример тела запроса:
 

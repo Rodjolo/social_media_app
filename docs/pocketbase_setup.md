@@ -11,15 +11,19 @@
 Для локального сервиса пересчета рекомендаций:
 
 - `http://10.0.2.2:8091`
+- токен по умолчанию: `local-recommendation-service`
 
 Адреса задаются в:
 
-- [backend_config.dart](/C:/Flutter%20Projects/SocialMediaApp/social_media_app/lib/config/backend_config.dart)
+- [backend_config.dart](../lib/config/backend_config.dart)
 
 При необходимости их можно переопределить:
 
 ```powershell
-flutter run --dart-define=POCKETBASE_URL=http://10.0.2.2:8090 --dart-define=RECOMMENDATION_SERVICE_URL=http://10.0.2.2:8091
+flutter run `
+  --dart-define=POCKETBASE_URL=http://10.0.2.2:8090 `
+  --dart-define=RECOMMENDATION_SERVICE_URL=http://10.0.2.2:8091 `
+  --dart-define=RECOMMENDATION_SERVICE_TOKEN=local-recommendation-service
 ```
 
 ## Коллекции PocketBase
@@ -67,9 +71,9 @@ flutter run --dart-define=POCKETBASE_URL=http://10.0.2.2:8090 --dart-define=RECO
 
 - `list`: `@request.auth.id != ""`
 - `view`: `@request.auth.id != ""`
-- `create`: `@request.auth.id != ""`
-- `update`: `@request.auth.id != ""`
-- `delete`: `@request.auth.id != ""`
+- `create`: оставить пустым, чтобы запись была только для superuser
+- `update`: оставить пустым, чтобы запись была только для superuser
+- `delete`: оставить пустым, чтобы запись была только для superuser
 
 ### `media`
 
@@ -145,9 +149,9 @@ flutter run --dart-define=POCKETBASE_URL=http://10.0.2.2:8090 --dart-define=RECO
 
 - `list`: `@request.auth.id != "" && uid = @request.auth.id`
 - `view`: `@request.auth.id != "" && uid = @request.auth.id`
-- `create`: `@request.auth.id != ""`
-- `update`: `@request.auth.id != ""`
-- `delete`: `@request.auth.id != ""`
+- `create`: оставить пустым, чтобы запись была только для superuser
+- `update`: оставить пустым, чтобы запись была только для superuser
+- `delete`: оставить пустым, чтобы запись была только для superuser
 
 ## Что обязательно для админ-панели рекомендаций
 
@@ -158,6 +162,20 @@ flutter run --dart-define=POCKETBASE_URL=http://10.0.2.2:8090 --dart-define=RECO
 3. Для обычных пользователей оставь `false`.
 
 После этого нужно заново войти в приложение, чтобы роль перечиталась из PocketBase.
+
+## Локальный сервис рекомендаций
+
+Сервис запускается на компьютере и по умолчанию доступен только с `127.0.0.1`.
+
+```powershell
+python .\tools\recommendation_pipeline\recommendation_service.py `
+  --superuser-email "admin@example.com" `
+  --superuser-password "your_password" `
+  --api-token "local-recommendation-service"
+```
+
+Для Android Emulator приложение обращается к этому сервису через `http://10.0.2.2:8091`.
+Если меняешь `--api-token`, то такое же значение нужно передать во Flutter через `--dart-define=RECOMMENDATION_SERVICE_TOKEN=...`.
 
 ## Порядок миграции
 

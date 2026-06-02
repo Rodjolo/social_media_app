@@ -36,7 +36,7 @@ flowchart LR
     PB --> SQLite["PocketBase SQLite DB + file storage"]
 ```
 
-Главная идея: приложение работает с социальными функциями и фильмами через PocketBase. Рекомендации пересчитываются отдельным локальным сервисом, который запускает Python-скрипты, берет оценки пользователя из PocketBase, объединяет их с MovieLens и записывает результат обратно в коллекцию `recommendations`.
+Главная идея: приложение работает с социальными функциями и фильмами через PocketBase. Рекомендации пересчитываются отдельным локальным сервисом, который запускает Python-скрипты, берет оценки пользователя из PocketBase, объединяет их с MovieLens и записывает результат обратно в коллекцию `recommendations`. Сервис защищен локальным токеном и по умолчанию слушает `127.0.0.1`.
 
 ## Архитектура Flutter-приложения
 
@@ -88,7 +88,7 @@ sequenceDiagram
 
     User->>App: Ставит оценку фильму
     App->>PB: Создает/обновляет запись ratings
-    App->>Service: POST /rebuild с userId
+    App->>Service: POST /rebuild с userId и service token
     Service->>Pipeline: rebuild_recommendations.ps1
     Pipeline->>PB: Экспорт оценок пользователя
     Pipeline->>ML: Чтение ratings.csv и movies.csv
@@ -240,7 +240,7 @@ flowchart LR
 | MovieLens dataset | `assets/db/ml-latest-small` | Источник исторических оценок и каталога фильмов |
 | TMDB | внешний API | Постеры, описания, жанры и популярность фильмов |
 
-Ключевые настройки находятся в `lib/config/backend_config.dart`. Для локального запуска на Android emulator приложение использует `10.0.2.2`, потому что `127.0.0.1` внутри emulator указывает на сам emulator, а не на компьютер.
+Ключевые настройки находятся в `lib/config/backend_config.dart`. Для локального запуска на Android emulator приложение использует `10.0.2.2`, потому что `127.0.0.1` внутри emulator указывает на сам emulator, а не на компьютер. Для сервиса рекомендаций также используется `RECOMMENDATION_SERVICE_TOKEN`; он должен совпадать с `--api-token` при запуске `recommendation_service.py`.
 
 ## Где находится код
 
@@ -253,3 +253,4 @@ flowchart LR
 | Admin panel | `lib/features/movies/presentation/pages/recommendation_admin_page.dart` |
 | Python pipeline | `tools/recommendation_pipeline/` |
 | Setup docs | `docs/pocketbase_setup.md`, `tools/recommendation_pipeline/README.md` |
+| Схема сбора данных | `docs/data_collection_schema.md` |
