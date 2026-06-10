@@ -99,6 +99,119 @@ flutter run `
   --dart-define=RECOMMENDATION_SERVICE_TOKEN=local-recommendation-service
 ```
 
+### Запуск на реальном Android-устройстве
+
+Если приложение запускается на реальном телефоне, адрес `10.0.2.2` использовать нельзя: он работает только в Android Emulator. Телефон должен обращаться к IP-адресу компьютера в локальной сети.
+
+1. Узнать IPv4-адрес компьютера:
+
+```powershell
+ipconfig
+```
+
+Например:
+
+```text
+192.168.31.235
+```
+
+2. Запустить PocketBase так, чтобы он был доступен телефону:
+
+```powershell
+cd "C:\PocketBase"
+.\pocketbase.exe serve --http=0.0.0.0:8090
+```
+
+3. Запустить локальный сервис рекомендаций:
+
+```powershell
+cd "C:\Flutter Projects\SocialMediaApp\social_media_app"
+
+python .\tools\recommendation_pipeline\recommendation_service.py `
+  --host 0.0.0.0 `
+  --base-url "http://127.0.0.1:8090" `
+  --superuser-email "YOUR_POCKETBASE_EMAIL" `
+  --superuser-password "YOUR_POCKETBASE_PASSWORD" `
+  --api-token "local-recommendation-service"
+```
+
+4. Проверить с телефона в браузере:
+
+```text
+http://192.168.31.235:8090/_/
+http://192.168.31.235:8091/health
+```
+
+5. Запустить приложение на телефоне:
+
+```powershell
+flutter run `
+  --dart-define=POCKETBASE_URL=http://192.168.31.235:8090 `
+  --dart-define=RECOMMENDATION_SERVICE_URL=http://192.168.31.235:8091 `
+  --dart-define=RECOMMENDATION_SERVICE_TOKEN=local-recommendation-service
+```
+
+Если IP компьютера изменился, приложение нужно запускать или собирать заново с новым `POCKETBASE_URL` и `RECOMMENDATION_SERVICE_URL`.
+
+### Сборка APK для демонстрации
+
+Для демонстрации на реальном устройстве можно собрать release APK:
+
+```powershell
+flutter build apk --release `
+  --dart-define=POCKETBASE_URL=http://192.168.31.235:8090 `
+  --dart-define=RECOMMENDATION_SERVICE_URL=http://192.168.31.235:8091 `
+  --dart-define=RECOMMENDATION_SERVICE_TOKEN=local-recommendation-service
+```
+
+Готовый файл:
+
+```text
+build\app\outputs\flutter-apk\app-release.apk
+```
+
+Передать APK на телефон можно любым удобным способом:
+
+- отправить себе в Telegram, WhatsApp или VK;
+- загрузить в Google Drive, Яндекс Диск или OneDrive;
+- поднять локальную раздачу файла:
+
+```powershell
+cd "C:\Flutter Projects\SocialMediaApp\social_media_app\build\app\outputs\flutter-apk"
+python -m http.server 8080
+```
+
+После этого открыть на телефоне:
+
+```text
+http://192.168.31.235:8080/app-release.apk
+```
+
+Android может попросить разрешить установку из неизвестных источников для браузера, Telegram или файлового менеджера.
+
+### Публикация APK в GitHub Releases
+
+Через сайт GitHub:
+
+1. Открыть репозиторий на GitHub.
+2. Перейти в `Releases`.
+3. Нажать `Draft a new release`.
+4. Создать tag, например `v1.0.0-demo`.
+5. Указать название, например `Demo APK`.
+6. Прикрепить файл `build\app\outputs\flutter-apk\app-release.apk`.
+7. Нажать `Publish release`.
+
+Через GitHub CLI:
+
+```powershell
+gh release create v1.0.0-demo `
+  "build\app\outputs\flutter-apk\app-release.apk" `
+  --title "Demo APK" `
+  --notes "Демонстрационная APK-версия приложения с PocketBase и системой рекомендаций."
+```
+
+Важно: APK, собранный с локальным IP вроде `192.168.31.235`, будет работать только в той сети, где телефон видит компьютер с запущенным PocketBase и сервисом рекомендаций.
+
 ## Запуск PocketBase
 
 ```powershell
